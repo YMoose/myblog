@@ -26,6 +26,8 @@ remod <*mod name*>
 remod：移除linux内核模块  
 modeprobe <*mod name*> <args>  
 modeprobe：移除或添加linux内核模块  
+lsmod  
+列出已加载的内核模块  
 
 getconf <*conf name*>  
 getconf：查看系统的配置信息  

@@ -19,7 +19,7 @@ KVM中的一个客户机是作为一个用户空间进程（qemu-kvm）运行的
 
 ### 内存虚拟化
 KVM在实例化Guest机时会为每个guest机都分配并映射了自己的地址空间（0地址开始的连续的物理内存空间），当然这个地址空间不是真实的物理地址空间。实际上，映射给Guest机的物理内存是映射给这个guest机进程（guest机的运行对于host机来说类似于一个用户进程）的虚拟内存。所以这里存在两层地址转换，需要先将guest机的虚拟地址（Guest Virtual Address, GVA）->guest机物理地址（guest机进程的虚拟地址）（也就是客户机以为的物理地址（Guest Physical Address,GPA）->host机的真实物理地址（Host Physical Address, HPA）。第一层转换由Guest机操作系统完成，第二层由KVM完成。  
-KVM使用了影子页（Shadow Page Tables）表来解决这个问题（如图）  
+KVM使用了影子页表（Shadow Page Tables）表来解决这个问题（如图）  
 ![影子页表](影子页表.png)  
 当guest机运行时（cpu处于VMX non-root模式），处理器使用的页表并非guest机维护的guest机虚拟地址->guest机物理地址的页表而是guest机虚拟地址->host机真实物理地址的影子页表。KVM将影子页表载入到物理上的内存管理单元（MMU）中进行地址翻译。但是影子页表的实现复杂，开发、调试、维护都十分困难，而且影子页表的内存开销也比较大，因为每一个guest机都要对应一个影子页表。新的处理器在硬件上为影子页表的实现做了增强（intel EPT技术\AMD NPT技术）。基于此，KVM解决了虚拟化中的内存虚拟化模块。
 #### intel EPT技术
