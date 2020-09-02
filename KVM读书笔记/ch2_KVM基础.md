@@ -11,7 +11,7 @@ KVM中的一个客户机是作为一个用户空间进程（qemu-kvm）运行的
 以intel架构为例，其为虚拟化支持增加了两种操作系统模式，VMX root operation 和 VMX non-root operation，这两个操作模式都支持Ring 0 ~ Ring 3特权级。Host操作系统以及VMM运行在VMX root，guest操作系统运行在VMX non-root，不过当遇到某些指定的特权指令时会产生中断交由VMM（此时会经历VMX的模式转换）进一步处理。KVM利用此机制将Linux内核增加了除Kernel mode和User mode之外的第三种模式———guest mode（也就是对应于cpu的VMX non-root）。guest机在guest mode下直接运行除I/O及其他敏感指令外的所有指令，guest机的I/O及其他敏感指令会被捕获并通过QEMU交由KVM进行进一步处理。基于此，KVM解决了虚拟化中的处理器虚拟化模块。  
 更具体来看，如下图  
 ![KVM中的三种执行模式](vCPU在KVM中的三种执行模式.png)  
-- | 用户模式 | 内核模式 | 客户模式
+表 | 用户模式 | 内核模式 | 客户模式
 ---- |-------- | --------- | --------
 英文|User Mode | Kernel Mode | Guest Mode
 功能 |I/O模拟和管理| 高性能和安全相关的指令，如处理客户模式到内核模式的转换。，处理客户模式下的I/O指令或其他特权指令引起的退出（VM-Exit），处理影子内存管理（shadow MMU）| Guest机中的大部分指令，I/O和一些特权指令除外（它们会引起VM-Exit，被hypervisor截获并模拟）
