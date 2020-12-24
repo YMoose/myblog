@@ -21,6 +21,38 @@
    7. Active Benchmarking
    8. Static Performance Tuning
 ## Tools
+|Tyep|Characteristic|
+|-|-|
+|Observability|Watch activity<br>Safe,depending on resource overhead|
+|Benchmarking|Load test<br>Caution: production tests can cause issues due to contention|
+|Tuning 调优|Change<br>Danger: changes could hurt performance, now or later with load|
+|Static|Check configuration<br>Should be safe|
+
+![Before Tools](Tools_BeforeTools.png)
+再开始之前可以先列出系统有关的功能和组件图，这样可以根据图标逐一检查
+### Observability Tools
+------- Basic -------
+1. uptime: cpu load averages
+2. top(htop/atop(for short-lived processes)): System and per-process interval summary
+3. ps: Process status listing (ps -ef f)
+4. vmstat: Virtual memory statistics and more
+5. iostat: Block I/O (disk)stat
+6. mpstat: Multi-processor statistics,per-CPU
+7. free: main memory usage  
+
+------- Intermediate -------
+1. strace: System call tracer (may slow things down)
+2. tcpdump: Sniff network packets for post analysis (现在比较难用)
+3. netstat: Various network protocol statistics
+4. nicstat: Network interface stats, iostat-like output
+5. pidstat: Very useful process stats
+6. swapon: Show swap device usage
+7. lsof: Shows file descriptor usage, whick for some apps, equals current active network connections
+8. sar: System Activity Report![sar Usage](Tools_sarUsage.png)
+
+------- Advanced -------
+1. ss: More socket statistics
+2. iptraf: a net tool gives you 
 ## Tool Types
 ## Profiling
 ## Tracing
