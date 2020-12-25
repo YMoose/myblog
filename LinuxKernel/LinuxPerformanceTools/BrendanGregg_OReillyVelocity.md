@@ -48,11 +48,55 @@
 5. pidstat: Very useful process stats
 6. swapon: Show swap device usage
 7. lsof: Shows file descriptor usage, whick for some apps, equals current active network connections
-8. sar: System Activity Report![sar Usage](Tools_sarUsage.png)
+8. sar: System Activity Report  ![sar Usage](Tools_sarUsage.png)
 
 ------- Advanced -------
 1. ss: More socket statistics
-2. iptraf: a net tool gives you 
-## Tool Types
+2. iptraf: a net tool gives you a histogram of the network
+3. iotop: Block device I/O (disk) by process
+4. slabtop: Kernel slab allocator memory usage
+5. pcstat: show page cache residency by file
+6. perf_event: Provides the "perf" command
+7. tiptop: Gice you a in general how quickly is the thread retiring instructions on CPU(love it)
+8. rdmsr: Model Specific Registers
+9. others   ![More Advanced Tools](Tools_MoreAdvancedTools.png)  
+
+------- Graph -------  
+![Observability Tools Graph](Tools_ObservabilityToolsGraph.png)  
+### Benchmarking Tools
+#### Benchmarking Method
+1. Run the benchmark with Observability Tools
+#### tools
+1. fio: FS or disk I/O micro-benchmarks
+2. pchar: Traceroute with bandwidth per hop  
+------- Graph -------  
+![Branchmark Tools Graph](Tools_BenchmarkToolsGraph.png)  
+### Tuning Tools
+Tuning the targets after using Observability Tools  
+------- Graph -------  
+![Tuning Tools Graph](Tools_TuningToolsGraph.png)  
+### Static Tools
+在系统没有工作的情况下，查看系统的状态  
+------- Graph -------  
+![Static Tools Graph](Tools_StaticToolsGraph.png)  
 ## Profiling
+### Objectives
+- Profile CPU usage by stack sampling(栈取样？): 对cpu运行时的栈进行固定间隔的取样
+- Generate CPU flame graphs
+- Understand gotchas with stacks & symbols
+### tools
+perf -> Flame Graph  
+------- Graph -------  
+![Profiling tools](Profiling_perfTools.png)  
+------- workflow --------  
+![perf_events Workflow](Profiling_perf-eventWorkflow.png)  
 ## Tracing
+### Objectives
+- Understand frameworks: tracepoints, kprobes, uprobes
+- Understand mainline tracers: ftrace, perf_events, eBPF
+- Awareness of other tracers: systemtap, LTTng, ktap, sysdig
+- Awareness of what tracing can accomplish(eg, perf-tools)
+### framworks
+![tracing framwork](Tracing_framework.png)  
+How to choosing a Tracer  
+![Choosing a Tracer](Tracing_ToolsRoadmap.png)  
