@@ -42,7 +42,7 @@
    |组件协作|通过晚期绑定，实现松耦合以解决协作问题|Template Method<br>Strategy<br>Observer/Event|
    |单一职责|子类急剧膨胀，需要有责任划分，使对象类有清晰的（最好是单一）职责|Decorator<br>Bridge|
    |对象创造|通过此类模式，绕开new，解决对象创建过程中的依赖关系，从而支持对象创建的稳定。是接口实现的第一步|Factory Method<br>Abstract Factory<br>Prototype<br>Builder|
-   |对象性能|||
+   |对象性能|处理面对对象带来的成本|Singleton<br>Flyweight|
    |接口隔离|||
    |状态变化|||
    |数据结构|||
