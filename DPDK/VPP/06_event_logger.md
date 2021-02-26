@@ -11,3 +11,4 @@
 - 线程安全, 记录速度小于100ns
 - 观察者效应：最多每个节点每一个frame记2个event 
 ## example(src/example/vlib/elog_examples.c)
+可以配合官方开发者开发的一个[图形化小工具](https://wiki.fd.io/view/VPP/g2)配合查看
