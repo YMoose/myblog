@@ -28,7 +28,7 @@
 |Tuning 调优|Change<br>Danger: changes could hurt performance, now or later with load|
 |Static|Check configuration<br>Should be safe|
 
-![Before Tools](Tools_BeforeTools.png)
+![Before Tools](Tools_BeforeTools.png)  
 再开始之前可以先列出系统有关的功能和组件图，这样可以根据图标逐一检查
 ### Observability Tools
 ------- Basic -------
@@ -48,7 +48,8 @@
 5. pidstat: Very useful process stats
 6. swapon: Show swap device usage
 7. lsof: Shows file descriptor usage, whick for some apps, equals current active network connections
-8. sar: System Activity Report  ![sar Usage](Tools_sarUsage.png)
+8. sar: System Activity Report  
+   ![sar Usage](Tools_sarUsage.png)
 
 ------- Advanced -------
 1. ss: More socket statistics
@@ -59,7 +60,8 @@
 6. perf_event: Provides the "perf" command
 7. tiptop: Gice you a in general how quickly is the thread retiring instructions on CPU(love it)
 8. rdmsr: Model Specific Registers
-9. others   ![More Advanced Tools](Tools_MoreAdvancedTools.png)  
+9. others   
+   ![More Advanced Tools](Tools_MoreAdvancedTools.png)  
 
 ------- Graph -------  
 ![Observability Tools Graph](Tools_ObservabilityToolsGraph.png)  
