@@ -5,19 +5,19 @@ src/vlib/node.h
 typedef enum
 {
   /* An internal node on the call graph (could be output). */
-  VLIB_NODE_TYPE_INTERNAL,
+  VLIB_NODE_TYPE_INTERNAL, // 真正处理数据包的业务node
 
   /* Nodes which input data into the processing graph.
      Input nodes are called for each iteration of main loop. */
-  VLIB_NODE_TYPE_INPUT,
+  VLIB_NODE_TYPE_INPUT, // 收包逻辑node，如：dpdk，pcap等
 
   /* Nodes to be called before all input nodes.
      Used, for example, to clean out driver TX rings before
      processing input. */
-  VLIB_NODE_TYPE_PRE_INPUT,
+  VLIB_NODE_TYPE_PRE_INPUT, // 目前只有一个epoll node，对socket相关逻辑提供服务，主要使用于控制业务
 
   /* "Process" nodes which can be suspended and later resumed. */
-  VLIB_NODE_TYPE_PROCESS,
+  VLIB_NODE_TYPE_PROCESS, // 该类型node可以被挂起也可以被恢复，有独立的分配在heap上的运行时栈。类似于在一个线程中实现了多任务调度机制。主要用来修改vpp node内部参数
 
   VLIB_N_NODE_TYPE,
 } vlib_node_type_t;

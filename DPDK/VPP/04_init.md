@@ -36,7 +36,8 @@
 4. vlib_main_loop(src/vlib/main.c:2040)函数
    1. 创建前面2.3提到的线程(src/vlib/main.c:1792)
    2. 在while(1)循环中处理不同类型的node，并dispatch其到合适的中间node，再由dispatch_pending_node()函数进一步处理被分发的数据包。其中也会处理一部分中断请求并分发到中间node进行处理
-      - pre-input node(src/vlib/main.c:1857): 类似于DBG_CLI的node
-      - input node(src/vlib/main.c:1866): 主要node，主要从网卡或者硬件加速器获取数据包
+      - pre-input node(src/vlib/main.c:1857): 类似于DBG_CLI的控制node
+      - input node(src/vlib/main.c:1866): 主要收包node，主要从网卡或者硬件加速器获取数据包
       - local interrupts(src/vlib/main.c:1878)
       - remote interrupts(src/vlib/main.c:1888)
+   3. (src/vlib/main.c:1908)在input node将收到的数据包添加到pending vector中并由dispatch_pending_node(src/vlib/main.c:1333)函数交给之后的node处理

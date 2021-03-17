@@ -51,5 +51,5 @@ dpdk配置
 1. 在vpp中用vlib_call_init_function宏去调用其他的init functions，在插件中要使用vlib_call_plugin_init_function
 2. 如果你想要从另一个插件中获得一个指针，要用vlib_get_plugin_symbol
 ## 术语
-FIB: 转发表
-RIB: 路由表
+FIB: 转发表Forwarding Info Base
+RIB: 路由表Routing Info Base
