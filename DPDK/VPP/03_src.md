@@ -42,9 +42,10 @@ vppinfra下定义了一些非常基础的高性能的变量类型&结构及其�
 11. bihash_template.h: bihash(Bounded-index extensible hash)实现原理相关。用户可以按照自己需求参考这个模板自己生成一个哈希表结构
 12. format.h: 输入输出格式化，可用于命令解析。format == write from date to string 和sprintf用法类似；unformat和sscanf类似
 ## vlib
-vlib主要提供基本的应用管理库：buffer管理，graph node管理，线程，CLI，trace等
+vlib主要提供基本的应用管理库实现：buffer管理，graph node管理，vector管理，线程，CLI，trace等
 1. node.h: 定义一些与图节点相关的操作(如VLIB_REGISTER_NODE)
 2. unix/plugin.h: 定义一些插件相关的操作(如初始化，加载等)
+3. unix/unix.h: 实现了一个poll(event-loop-like) node用于监听文件描述符事件并执行回调函数。像是cli的实现就是监听文件描述符0(代码在vnet/unix/tapcli.c)
 ## plugins
 plugins主要为实现一些功能，在程序启动的时候加载，一般情况下会在插件中加入一些node节点去实现相关功能
 ## vnet
