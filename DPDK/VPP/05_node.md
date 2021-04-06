@@ -47,12 +47,40 @@ VLIB_REGISTER_NODE (ip4_input_node) = { // VLIB_REGISTER_NODE宏会生成带__at
   .format_trace = format_ip4_input_trace, // show trace 显示路径的信息(一般是数据包到这个node时要输出的信息)
 };
 ```
+### 1. VLIB_NODE_TYPE_INTERNAL 
+最常见也是最重要的节点类型，此类节点是真正处理数据包业务的node
+### 2. VLIB_NODE_TYPE_INPUT
+此类节点用于包的起点(input)，其内部分为以下几类：
+src/vlib/node.h
+```
+#define foreach_vlib_node_state					\
+  /* Input node is called each iteration of main loop.		\
+     This is the default (zero). */				\
+  _ (POLLING)							\
+  /* Input node is called when device signals an interrupt. (我猜测是用于packet-generator) */	\
+  _ (INTERRUPT)							\
+  /* Input node is never called. */				\
+  _ (DISABLED)
+
+typedef enum
+{
+#define _(f) VLIB_NODE_STATE_##f,
+  foreach_vlib_node_state
+#undef _
+    VLIB_N_NODE_STATE,
+} vlib_node_state_t;
+```
+另外input node 类型的数据结构中有一个叫`input_main_loop_per_call`的计数器，每次main_loop循环这个计数器会递减，直到此项为0后，才真正执行其函数。这样使得可以控制main_lopp循环时某些input node(此计数器值较小者)可以比其他input node更常调用
+### 3. VLIB_NODE_TYPE_PRE_INPUT
+此类节点是在input节点之前的节点，常用于实现控制平面的功能
+### 4. VLIB_NODE_TYPE_PROCESS
+类似线程的函数(类似中断处理程序)，可以被挂起、等待事件执行(timer相关)、取消挂起恢复···
 ## node初始化
 1. 在vlib_main(src/vlib/main.c:2138)函数中调用 vlib_register_all_static_nodes(src/vlib/node.c:505)函数遍历([VLIB_REGISTER_NODE](#main函数之前)注册的)vlib_main_t->node_main.node_registrations调用register_node(src/vlib/node.c:294)来创建(只是创建并基本的初始化不连接)所有的node。所有注册的node都会保存到vlib_main_t->node_main->nodes中，nodes则存储在一个vec_header_t中(这样相比链表更容易找到，但每次添加时要重新申请内存)
 2. 在register_node(src/vlib/node.c:294)函数中不仅会将node添加到vlib_main_t->node_main->nodes中，还会根据node的类型区分添加到vlib_main_t->node_main另外两个数据结构(也都是vec_header_t的方式存储)中：
    - VLIB_NODE_TYPE_PROCESS: vlib_main_t->node_main->processes
    - 其他所有类型: vlib_main_t->node_main->nodes_by_type
-3. 调用 vlib_node_main_init(src/vlib/node.c:596)函数对node graph进行初始化，包括根据node之间关系进行串联。
+3. 调用 vlib_node_main_init(src/vlib/node.c:596)函数对node graph进行初始化(可通过此函数返回值查看是否初始化成功)，包括根据node之间关系进行串联。
 ## node操作
 在vlib_main_loop(src/vlib/main.c:2040)函数中处理node中的操作
 ### 核心node操作循环
