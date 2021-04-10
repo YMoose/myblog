@@ -238,3 +238,12 @@ VLIB_REGISTER_NODE (myplugin_node) =
 },
 };
    ```
+## ipsec
+src/vnet/ipsec
+## etherenet 
+src/vnet/ethernet
+可以学习node hook框架
+关键函数：
+1. determine_next_node(src/vnet/ehternet/node.c): determine packet's next node by type tag(using type to find next node in ethernet_main_t->l3_next.input_next_by_type(a sparse_vec (稀松数组)))
+2. ethernet_register_input_type(src/vnet/ehternet/node.c): register next node with ethernet type(add type to ethernet_main_t->l3_next.input_next_by_type(a sparse_vec))
+3. vlib_node_add_next(src/vlib/node_funcs.h): add next node to node with their node index return slot index of next node in node's next node vec
