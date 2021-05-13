@@ -25,7 +25,7 @@ TMAM: Top-down Microarchitecture Analysis (TMA) Method
 ## TMAM
 ## TMAM层级
 ### 第一层
-1. Retiring : 理想状况的流水线执行比重
+1. Retiring : 理想状况的流水线执行比重([参考](https://stackoverflow.com/questions/22368835/what-does-intel-mean-by-retired):一定程度上可以理解为正常回写)
 2. Bad Speculation : 分支预测出错
 3. Frontend Bound : 取指、译码
 4. Backend Bound : 执行、访存
