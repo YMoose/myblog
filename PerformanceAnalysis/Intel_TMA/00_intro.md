@@ -29,13 +29,5 @@ TMAM: Top-down Microarchitecture Analysis (TMA) Method
 2. Bad Speculation : 分支预测出错
 3. Frontend Bound : 取指、译码
 4. Backend Bound : 执行、访存
-### 如何分类
-![Top level breakdown](Top_level_breakdown.png)  
-- Uop Issued? Uop正常在流水线上流通么？
-  - 正常->Uop正常完成执行去下一个流水线步骤了么？
-    -  正常->Retiring
-    -  中途退出了->预测出错
-  - 不正常(卡住了)->是Back-end卡住了么？
-    - 是->backend限制
-    - 否->frontend限制
+
 
