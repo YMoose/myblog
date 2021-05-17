@@ -36,4 +36,12 @@
 ###### 4.1.5.1 Mem Bandwidth : 大多数内存读取时可以同步进行的，其余的会归为此类
 ###### 4.1.5.1 Mem Latency : 剩下的就是这个了
 #### 4.2. Core Bound : 计算核心的性能限制(好比说除法会有更低的计算性能)，得靠编译器优化
-## CPU PMU事件分析
+## CPU PMU
+PMU中主要由PMC(performance monitor counter)组成，cpu中有若干PMC(可以通过cpuid命令查看)可被用户指定监控指定event。PMC通过分时复用来采集大于其数量的event。通过对不同event数据采集统计分析可以得到更为直观的性能评价(metric)    
+根据event的不同PMC可分为
+- core event : 直接工作在CPU物理核心上的计数器
+- offcore event : 是相关HT技术导致的同一物理核心上两个不同的HT上不得不共享的一些事件的计数器
+- uncore event : 在同一个CPU插槽所有core共享的计数器，使用前需要预先找到对应的虚拟pcie设备，并通过虚拟设备读取而非直接通过CPU指令读取。uncore有以下分类
+  - uncore/cha， uncore/imc，uncore/cbo，etc 这类内存和三级缓存访问有关的event
+  - uncore/upi UPI相关
+  - uncore/iio iio和pcie相关
