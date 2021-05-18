@@ -4,6 +4,7 @@ TMAM: Top-down Microarchitecture Analysis (TMA) Method
 - 目标: 通过分析检测出瓶颈(进一步定位出问题)&预估其消耗
 - 方法: 通过统计PMU采集的Performance Counter值进行计算统计。
 ## 性能分析
+![使用TMAM之前的系统性能瓶颈分析](BeforeUsingTMAM.png)
 性能分析一般分为3个层级
 1. System (Disk, Network, Graphics, ...)
 2. Application + Runtime (Algorithm complexity, Parallelization/Multithreading, ...)
@@ -29,5 +30,12 @@ TMAM: Top-down Microarchitecture Analysis (TMA) Method
 2. Bad Speculation : 分支预测出错
 3. Frontend Bound : 取指、译码
 4. Backend Bound : 执行、访存
+
+## 参考资料
+1. [Intel对TMAM的介绍](https://software.intel.com/content/www/us/en/develop/documentation/vtune-cookbook/top/methodologies/top-down-microarchitecture-analysis-method.html)
+2. [Intel的TMAM 分析工具 VTune Profiler(不开源)](https://software.intel.com/content/www/us/en/develop/documentation/get-started-with-vtune/top.html)
+3. [开源TMAM分析工具 pmu-tools](https://github.com/andikleen/pmu-tools/wiki/toplev-manual)
+4. [pmu-tools作者对pmu-tools的介绍(还是直接看github上写得好)](http://halobates.de/blog/p/245)
+5. [阿里团队对TMAM的介绍(较为详细)](https://kernel.taobao.org/2019/03/Top-down-Microarchitecture-Analysis-Method/)
 
 
