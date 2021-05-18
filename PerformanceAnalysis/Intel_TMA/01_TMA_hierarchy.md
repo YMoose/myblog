@@ -41,7 +41,7 @@
 #### 4.2. Machine Clears: 数据预取错误，MOB(memory ordering buffer)刷新带来的问题和自修改代码(self modifying code)
 
 ## CPU PMU
-PMU中主要由PMC(performance monitor counter)组成，cpu中有若干PMC(可以通过cpuid命令查看)可被用户指定监控指定event(MSR: Model Specific Register)。PMC通过分时复用来采集大于其数量的event。通过对不同event数据采集统计分析可以得到更为直观的性能评价(metric)    
+PMU中主要由PMC(performance monitor counter)组成，cpu中有若干PMC(可以通过cpuid命令查看)(在intel硬件层面称为(MSR: Model Specific Register))可被用户(通过注册，注意有些MSR被注册后没被释放会造成冲突问题)指定监控指定event。PMC通过分时复用来采集大于其数量的event。通过对不同event数据采集统计分析可以得到更为直观的性能评价(metric)。可通过直接读取0x38F这个MSR来查看event counter是否被占用，只有当返回值不为0的时候才意味着没有其他的进程占用了event counter。    
 根据event的不同PMC可分为
 - core event : 直接工作在CPU物理核心上的计数器
 - offcore event : 是相关HT技术导致的同一物理核心上两个不同的HT上不得不共享的一些事件的计数器
@@ -49,3 +49,4 @@ PMU中主要由PMC(performance monitor counter)组成，cpu中有若干PMC(可�
   - uncore/cha， uncore/imc，uncore/cbo，etc 这类内存和三级缓存访问有关的event
   - uncore/upi UPI相关
   - uncore/iio iio和pcie相关
+
