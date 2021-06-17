@@ -41,6 +41,8 @@ trace, ip, sym, dso, addr, symoff, srcline, period, iregs, uregs, brstack, brsta
 3. record -> write event data to file
 4. report -> browse summary
 5. script -> event dump for post processing
+## perf数据生成火焰图
+
 ## issues
 1. perf是基于采样的，所以采样数量少的话结果可信度差
 2. perf的很多事件是依赖中断的，linux内核一旦关闭中断就会造成采样错误，要等到中断开启时才会击中，且关闭中断时，中断控制器会丢弃相同中断，也会造成错误。目前的Intel平台已经把PMU中断切换为了NMI中断(不可屏蔽)，但ARM/ARM64平台还没有解决，所以要小心(特别时看到_raw_spin_unlock()这一类函数击中数高时)
