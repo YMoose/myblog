@@ -11,6 +11,7 @@ TMAM: Top-down Microarchitecture Analysis (TMA) Method
 3. Architectural + μArch (vectorize key loops, reduce cache misses, ...) (这也是TMA主要针对的)
 ## 与传统分析方法的区别
 ### Traditional Methods
+(其实我也不知道传统方法具体是说的啥)
 传统分析方法采用了`stall_cycles = sum(Penalty[i] * MissEvent[i]) `的计算方法。这样的计算方法存在以下问题
 1. Stalls Overlap: 流水线前面μop的卡顿可能会影响后面的μop也卡顿
 2. Speculative Execution: 存在分支预测的干扰
