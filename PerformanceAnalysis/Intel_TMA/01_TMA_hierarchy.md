@@ -31,6 +31,7 @@ PMU中主要由PMC(performance monitor counter)组成，cpu中有若干PMC(可�
     - 是->backend限制
     - 否->frontend限制
 ### 1. Frontend Bound : 取指、译码
+比较少见，通常来说像JIT的代码和解释型语言的程序运行时会遇到此类问题，要解决此类问题与程序code layout和编译技术相关。可以采用code size优化和PGO优化。
 #### 1.1. Fetch Latency : 主要指取指的延迟，造成的原因如下
 ##### 1.1.1. i-cache miss
 ##### 1.1.2. i-TLB miss
@@ -48,8 +49,9 @@ PMU中主要由PMC(performance monitor counter)组成，cpu中有若干PMC(可�
 ###### 2.1.5.1 Mem Bandwidth : 大多数内存读取时可以同步进行的，其余的会归为此类。根据是当前有多少请求依赖从内存中获取的数据。每当这类请求的占用率超过一个高阈值时（例如最大请求数的70％），TMAM 将其标记为可能受内存带宽的限制(启发式算法)
 ###### 2.1.5.2 Mem Latency : 低于70%的就是这个
 #### 2.2. Core Bound : 调度器不平衡，相同类型的指令多，导致后端为执行完成，未释放微指令调度时的port或者除法指令过多
-### 3. Retiring : 理想状况的流水线执行比重(但仍然可以优化!)(计算核心的性能限制(好比说除法会有更低的计算性能，缺少指令级别的并行(考虑使用SIMD))，得靠编译器优化
-)
+### 3. Retiring : 理想状况的流水线执行比重
+但仍然可以优化!有计算核心的性能限制(好比说除法会有更低的计算性能，缺少指令级别的并行(考虑使用SIMD))，得靠编译器参数(如DAZ或FTZ)优化。如还需优化则考虑通过增加并行化解决
+
 #### 3.1. BASE
 ##### 3.1.1. FP-arithmetic : 浮点数计算
 ###### 3.1.1.1. Scalar : 标量的
@@ -57,6 +59,7 @@ PMU中主要由PMC(performance monitor counter)组成，cpu中有若干PMC(可�
 #### 3.2. Micro Sequencer : 像浮点数计算支持等微指令也会影响性能，被计数在这个部分
 
 ### 4. Bad Speculation : 分支预测出错
+可以通过PGO技术优化
 #### 4.1. Branch Misspredict
 #### 4.2. Machine Clears: 数据预取错误，MOB(memory ordering buffer)刷新带来的问题和自修改代码(self modifying code)
 
