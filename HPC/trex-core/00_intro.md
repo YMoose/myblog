@@ -19,7 +19,7 @@ t-rex 是一个高性能的软件实现的流量生成与测试平台。
 ### 安装dpdk
 注意：并不是所有支持dpdk的网卡都支持TRex（比较蛋疼）
 ### 安装trex
-### 配置
+### 配置 (配置文件各项参数可以参考官方文档[6.Reference](https://trex-tgn.cisco.com/trex/doc/trex_manual.html#_reference))
 1. 使用命令`sudo ./scripts/dpdk_devbind.py -s`查看需要trex需要使用的网卡
 2. 使用命令`sudo ./scripts/dpdk_setup_ports.py -i`可以自动生成trex配置文件,官方样例配置文件在`./scripts/cfg`目录下  
 基于ip的配置`/etc/trex_cfg.yaml`
@@ -97,6 +97,33 @@ sudo ./t-rex-64 -f <traffic_yaml> -m <multiplier>
 ``` 
 可以使用CLI程序`./scripts/t-rex-64`启动trex
 - --cfg <cfg.yaml>指定配置文件
-- -c <num>指定使用核数
+- -c <core number>指定使用核数
+- -d <duration>测试时长
+- -p send the client side packets from both interface(通常只从client ports发，要小心使用这个选项，容易造成路由问题)
 ### API
 ### GUI
+### example
+|name|description|
+|-|-|
+cap2/imix_fast_1g.yaml|用于测试优化DRAM性能(1600flows)|
+cap2/imix_fast_1g_100k.yaml|100kflows|
+cap2/dns.yaml|simple dns pcap file|
+cap2/http_simple.yaml|simple http cap file
+avl/sfr_*.yaml|混合流量测试集（通常是1Gbps，-m 多少就是多少Gbps）|
+avl/sfr_delay_10_1g_no_bundeling.yaml|sfr traffic profile capture from Avalanche - Spirent without bundeling support with RTT=10msec ( a delay machine), this can be used with --ipv6 and --learn-mode|
+avl/sfr_delay_10_1g.yaml|head-end sfr traffic profile capture from Avalanche - Spirent with bundeling support with RTT=10msec ( a delay machine), it is normalized to 1Gb/sec for m=1|
+avl/sfr_branch_profile_delay_10.yaml|branch sfr profile capture from Avalanche - Spirent with bundeling support with RTT=10msec it, is normalized to 1Gb/sec for m=1|
+cap2/imix_64.yaml|64byte UDP packets profile|
+## misc
+### Measuring Jitter/Latency
+trex使用SCTP/ICMP包探测扰动和延迟`--l-pkt-mode <0-3>`
+|Option ID |	Type|
+|-|-|
+|0|default, SCTP packets|
+|1|ICMP echo request packets from both sides|
+|2|Send ICMP requests from one side, and matching ICMP responses from other side.This is particulary usefull if your DUT drops traffic from outside, and you need to open pin hole to get the outside traffic in (for example when testing a firewall)|
+|3|Send ICMP request packets with a constant 0 sequence number from both sides. |
+### 混杂模式
+TRex port只收取目的MAC地址是这个port的mac的数据包，但可以通过配置promiscuous mode(混杂模式)来让port接受不同mac的包
+- CLI: `portattr -a --prom`
+- Python API: `client.set_port_attr(my_ports,promiscuous = True)`

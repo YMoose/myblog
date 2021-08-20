@@ -17,7 +17,7 @@
   #cap_ipg_min  : 30                    # 最小包间间隔，如果pcap文件中的包间间隔比这个小则采用这个值
   #cap_override_ipg :200                # 包间间隔强制采用这个值
   cap_info : 
-     - name: cap2/dns.pcap              # pcap 文件路径
+     - name: cap2/dns.pcap              # pcap 文件路径, pcap文件不能大于9kB
        cps : 1.0                        # connections per second
        ipg : 10000                      # inter-packet gap(microseconds). 10,000 = 10msec
        #server_addr      : "48.0.0.7"   # 采用这个包的所有流的server_addr 都采用这个值
