@@ -7,10 +7,12 @@ t-rex 是一个高性能的软件实现的流量生成与测试平台。
 - 可以灵活添加到自定义函数
 - 支持虚拟网卡
 ### stateless mode
+“Stateless” mode is meant to test networking gear that does not manage any state per flow (instead operating on a per packet basis). This is usually done by injecting customized packet streams to the device under test.  
 主要用于测试L2/L3层流量，packet based
 - 不用在意上下文，性能最高
 ### stateful mode
-主要用于测试L4-L7层流量,更加关注于模拟的真实性，Flow based  
+“Stateful” mode is meant for testing networking gear which saves state per flow (5 tuple). Usually this is done by injecting pre-recorded capture files on pairs of interfaces of the device under test, and dynamically changing src/dst IP/port. With advance Stateful mode it done by injecting L7 data on top of TCP/UDP potocols  
+主要用于测试L4-L7层流量，及一些需要对流状态进行存储的网络设备，更加关注于模拟的真实性，以及对DUT的状态维持能力的测试，Flow based  
 - 负载均衡
 - DPI/AVC
 - firewall
@@ -19,7 +21,7 @@ t-rex 是一个高性能的软件实现的流量生成与测试平台。
 ### 安装dpdk
 注意：并不是所有支持dpdk的网卡都支持TRex（比较蛋疼）
 ### 安装trex
-### 配置 (配置文件各项参数可以参考官方文档[6.Reference](https://trex-tgn.cisco.com/trex/doc/trex_manual.html#_reference))
+### 测试平台配置 (配置文件各项参数可以参考官方文档[6.Reference](https://trex-tgn.cisco.com/trex/doc/trex_manual.html#_reference))
 1. 使用命令`sudo ./scripts/dpdk_devbind.py -s`查看需要trex需要使用的网卡
 2. 使用命令`sudo ./scripts/dpdk_setup_ports.py -i`可以自动生成trex配置文件,官方样例配置文件在`./scripts/cfg`目录下  
 基于ip的配置`/etc/trex_cfg.yaml`
@@ -52,7 +54,21 @@ t-rex 是一个高性能的软件实现的流量生成与测试平台。
       src_mac         :   [0x0,0x0,0x0,0x4,0x0,0x0] # port1的mac
 ```
 `./scripts/dpdk_setup_ports.py`还有其他功能可以通过-h查看
-3. 如果使用启动trex时用`-f`参数需要写一个trex流量配置文件，
+3. 配置路由或arp  
+- 针对ip的trex配置还需要配置路由  
+  - 配置静态路由
+```
+ip route add 16.0.0.0/8 via 11.11.11.2
+ip route add 48.0.0.0/8 via 12.12.12.2
+```
+  - 配置策略路由PBR
+- 针对mac的trex配置还需要配置静态arp
+```
+arp -s 11.11.11.2 00:00:00:02:00:00 # port0的arp
+arp -s 12.12.12.2 00:00:00:04:00:00 # port1的arp
+``` 
+### 测试场景配置
+1. 如果使用启动trex时用`-f`参数需要写一个trex流量配置文件，
 ```
 - duration : 10.0
   generator :                           # 流量生成配置
@@ -73,20 +89,6 @@ t-rex 是一个高性能的软件实现的流量生成与测试平台。
        rtt : 10000                      # 要和igp数值相同
        w   : 1
 ```
-4. 配置路由或arp  
-- 针对ip的trex配置还需要配置路由  
-  - 配置静态路由
-```
-ip route add 16.0.0.0/8 via 11.11.11.2
-ip route add 48.0.0.0/8 via 12.12.12.2
-```
-  - 配置策略路由PBR
-- 针对mac的trex配置还需要配置静态arp
-```
-arp -s 11.11.11.2 00:00:00:02:00:00 # port0的arp
-arp -s 12.12.12.2 00:00:00:04:00:00 # port1的arp
-``` 
-5. 启动trex
 ## usage
 ### CLI
 ```
@@ -94,6 +96,8 @@ sudo ./t-rex-64 -f <traffic_yaml> -m <multiplier>
 -d <duration>
 -l <latency testrate>
 -c <cores>
+--limit-arp-request <arp count>
+-v <verbose level>
 ``` 
 可以使用CLI程序`./scripts/t-rex-64`启动trex
 - --cfg <cfg.yaml>指定配置文件
