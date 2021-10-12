@@ -4,3 +4,11 @@
 ## Vtune 官方测试模板
 ![Intel VTune测试模板](vtune_type.png)
 1. Performance Snapshot:分析时可以首先进行一次performance snapshot测试，其会给出下一步分析的建议
+## 一些建议
+要收集到更准确的数据就需要减少收集的数据
+1. 减少采集数据的时间
+2. 设置合适的"Duration Time Estimate"
+3. 在linux机器上设置TMPDIR环境量为本地文件系统的目录
+4. 设置"CPU Mask"
+5. 手动设置"SAV(sample after value)"值
+6. 减少需要采集的Performance Event数量
