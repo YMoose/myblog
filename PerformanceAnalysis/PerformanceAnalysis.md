@@ -14,3 +14,6 @@
    - 工具: top/perf/pmu-tools
 ## 方法论
 业务负载画像(workload characterization)
+## 流程
+1. 要先有性能测试的基础模型，以便每次修改可以检查效果
+2. 决定优化目标
