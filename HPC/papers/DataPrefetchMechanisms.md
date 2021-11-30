@@ -1,0 +1,5 @@
+# CPU数据预取机制
+## intro
+CPU与主存间有很大的速度差距，现在的解决手段都是用cpu上的cache缓存。cache缓存对于就地性好的代码有较好的效果，但是对于一些矩阵计算等特殊数据计算则会消耗大量的时间在cache missing上。为了改善这样的情况，采用prefetch的技术来提前从memory中加载所需要的内容。
+但prefetch技术也存在一些问题。如当过早的prefetch可能造成cache pollution，即prefetch了的cache抢占了后续要使用的内存的cache位置，导致了cache missing。同时，prefetch指令可以看作将cpu访存操作流水线话，这势必对memory bandwidth有更高的要求，不然就会造成memory bandwith的瓶颈
+## Software Data Prefetching
