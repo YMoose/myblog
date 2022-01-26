@@ -10,5 +10,6 @@ $$I(x_i) = log_2(\frac{1}{p_i}) $$
 信息的熵(Entropy)是在对于给定的变量范围X内，平均每个变量包含的信息量：
 $$H(X) = E(I(X)) = \sum_{i=1}^{N} p_i * log_2(\frac{1}{p_i})$$
 可以通过信息的熵来查看我们对整体信息使用的信息量是否合理，当小于熵时就说明信息量不够可能会丢失信息，当大于熵时就说明有信息冗余。  
-# Error Detection and Correction 错误检测与修正
+## Error Detection and Correction 错误检测与修正
+汉明码：表示信息之间的差距（两个不同的信息的不同比特位数量）
 
