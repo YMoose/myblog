@@ -98,6 +98,7 @@ sudo ./t-rex-64 -f <traffic_yaml> -m <multiplier>
 -c <cores>
 --limit-arp-request <arp count>
 -v <verbose level>
+-p # 在同一个port发送两个方向的报文
 ``` 
 可以使用CLI程序`./scripts/t-rex-64`启动trex
 - --cfg <cfg.yaml>指定配置文件

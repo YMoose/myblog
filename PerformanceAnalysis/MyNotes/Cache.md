@@ -1,6 +1,9 @@
 # cache
 ## cache 模型
 ![cache模型](pics/cache_model.png)
+### 现代cpu上的cache使用框架
+![现代CPU上的cache框架](pics/modern_cpu_cache_framework.jpg)  
+- write combining store buffer: 64Byte的缓冲区同时有一个64bit的bitmap，每更新其中的Byte会设置相应的bit。（写数据时发生cache miss，会先将数据暂存于write combining store buffer, 以便后续指令继续执行。若在write combining store buffer的数据在未解决cache miss期间，数据会直接在store buffer读写。）
 ### 
 ## 优化基本方针
 ## 数据预取(cache prefetch)
@@ -76,7 +79,77 @@ static inline void prefetch_range(void *addr, size_t len)
 1. 老的微架构
 2. prefetch一个造成fault/exception的地址
 3. L1cache到L2cache的访问请求数超过硬件限制值
+## Cacheability Control
+### The Non-temporal Store Instructions
+根据写数据的位置，可分为如下情况
+- write combining(合并写): 写的数据在同一个cache line中，会更新在write combining store buffer中之后合并写到内存中
+- write collapsing(): 写的数据在同一位置，则最后一次更新的数据可见
+- weakly ordered(): 写的数据位置不临近，不在store buffer上
+- uncacheable and not write-allocating(): 就在cache中，写操作不会让cache向内存请求数据
+### leverage store buffer
+如果我们能在缓冲区被传输到外部缓存之前将其填满，那么将大大提高各级传输总线的效率。
+
+这些缓冲区的数量是有限的，且随CPU模型而异。例如在Intel CPU中，同一时刻只能拿到4个。这意味着，在一个循环中，你不应该同时写超过4个不同的内存位置，否则你将不能享受到合并写（write combining）的好处。（如果还开启了hyper-threading， 可能会有两个线程竞争一个核的缓冲区）
+
+代码示例:
+``` C++
+public final class WriteCombining {
+private static final int    ITERATIONS = Integer.MAX_VALUE;
+private static final int    ITEMS      = 1 << 24;
+private static final int    MASK       = ITEMS - 1;
+private static final byte[] arrayA     = new byte[ITEMS];
+private static final byte[] arrayB     = new byte[ITEMS];
+private static final byte[] arrayC     = new byte[ITEMS];
+private static final byte[] arrayD     = new byte[ITEMS];
+private static final byte[] arrayE     = new byte[ITEMS];
+private static final byte[] arrayF     = new byte[ITEMS];
+public static void main(final String[] args) {
+    for (int i = 1; i <= 3; i++) {
+        out.println(i + " SingleLoop duration (ns) = " + runCaseOne());
+        out.println(i + " SplitLoop duration (ns) = " + runCaseTwo());
+    }
+    int result = arrayA[1] + arrayB[2] + arrayC[3] + arrayD[4] + arrayE[5] + arrayF[6];
+    out.println("result = " + result);
+}
+public static long runCaseOne() { // slow case 
+    long start = System.nanoTime();
+    int i = ITERATIONS;
+    while (--i != 0) {
+        int slot = i & MASK;
+        byte b = (byte) i;
+        arrayA[slot] = b;
+        arrayB[slot] = b;
+        arrayC[slot] = b;
+        arrayD[slot] = b;
+        arrayE[slot] = b;
+        arrayF[slot] = b;
+    }
+    return System.nanoTime() - start;
+}
+public static long runCaseTwo() { // faster case
+    long start = System.nanoTime();
+    int i = ITERATIONS;
+    while (--i != 0) {
+        int slot = i & MASK;
+        byte b = (byte) i;
+        arrayA[slot] = b;
+        arrayB[slot] = b;
+        arrayC[slot] = b;
+    }
+    i = ITERATIONS;
+    while (--i != 0) {
+        int slot = i & MASK;
+        byte b = (byte) i;
+        arrayD[slot] = b;
+        arrayE[slot] = b;
+        arrayF[slot] = b;
+    }
+    return System.nanoTime() - start;
+}
+
+```
 ## MISC
 1. 可以通过查看`/sys/devices/system/cpu/cpu0/cache/index`文件查看cpu cache信息
 ## 参考
-1.[数据预取](https://www.cnblogs.com/dongzhiquan/p/3694858.html)
+1. [数据预取](https://www.cnblogs.com/dongzhiquan/p/3694858.html)
+2. [write combining](http://ifeve.com/writecombining/) 
