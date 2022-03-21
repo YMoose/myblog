@@ -81,12 +81,20 @@ static inline void prefetch_range(void *addr, size_t len)
 3. L1cache到L2cache的访问请求数超过硬件限制值
 ## Cacheability Control
 ### The Non-temporal Store Instructions
-根据写数据的位置，可分为如下情况
+根据写数据的位置，可分为如下特性
 - write combining(合并写): 写的数据在同一个cache line中，会更新在write combining store buffer中之后合并写到内存中
-- write collapsing(): 写的数据在同一位置，则最后一次更新的数据可见
-- weakly ordered(): 写的数据位置不临近，不在store buffer上
-- uncacheable and not write-allocating(): 就在cache中，写操作不会让cache向内存请求数据
-### leverage store buffer
+- write collapsing: 写的数据在同一位置，则最后一次更新的数据可见
+- weakly ordered: 在一次 WC stores和一次 WC stores/ other loads or stores之间不保证数据存储的顺序性
+- uncacheable and not write-allocating: 就在cache中，写操作不会让cache向内存请求数据
+#### Fencing Instructions
+fencing 指令是针对于解决weakly ordered问题用的。其强制将store buffer/Invalidate queue上的数据刷新至cache上
+#### Streaming Non-temporal Stores
+在流式SIMD指令中MOVNTPS, MOVNTPD, MOVNTQ, MOVNTDQ, MOVNTI, MASKMOVQ, MASKMOVDQU是non-temporal store，也就是数据存储后并不会在短时间内再次使用，同时流式存储指令可以使用于跨不同内存类型的内存区域(For instance, a regionmay be mapped as write-back (WB) using page attribute tables (PAT) or memory type range registers(MTRRs) and yet is written using a streaming store.)。
+
+流式存储指令从如下方面提升性能:
+- 增大存储带宽。如果要写的数据可以正好在一个store buffer的范围内，首先他们在写入时先会写到store buffer中而不需要再获取read-for-ownership总线请求，其次数据在写入到内存上时会合并为一个64Bytes的总线写操作
+- 减少对常用数据缓存区域的干扰（减少cache污染）
+#### leverage store buffer
 如果我们能在缓冲区被传输到外部缓存之前将其填满，那么将大大提高各级传输总线的效率。
 
 这些缓冲区的数量是有限的，且随CPU模型而异。例如在Intel CPU中，同一时刻只能拿到4个。这意味着，在一个循环中，你不应该同时写超过4个不同的内存位置，否则你将不能享受到合并写（write combining）的好处。（如果还开启了hyper-threading， 可能会有两个线程竞争一个核的缓冲区）
