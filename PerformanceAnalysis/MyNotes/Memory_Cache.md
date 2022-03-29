@@ -166,11 +166,3 @@ fencing 指令是针对于解决weakly ordered问题用的。其强制将store b
 1. [数据预取](https://www.cnblogs.com/dongzhiquan/p/3694858.html)
 2. [write combining](http://ifeve.com/writecombining/) 
 3. [Memory part 2:CPU cache - Ulrich Drepper](https://lwn.net/Articles/252125/)
-4. https://lwn.net/Articles/250967/ mem1
-5. https://lwn.net/Articles/253361/ mem3
-6. https://lwn.net/Articles/254445/ mem4
-7. https://lwn.net/Articles/255364/ mem5
-8. https://lwn.net/Articles/256433/ mem6
-9. https://lwn.net/Articles/257209/ mem7
-10. https://lwn.net/Articles/258154/ mem8
-11. https://lwn.net/Articles/258188/ mem9
