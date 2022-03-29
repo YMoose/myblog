@@ -5,16 +5,19 @@
 ![现代CPU上的cache框架](pics/modern_cpu_cache_framework.jpg)  
 - write combining store buffer: 64Byte的缓冲区同时有一个64bit的bitmap，每更新其中的Byte会设置相应的bit。（写数据时发生cache miss，会先将数据暂存于write combining store buffer, 以便后续指令继续执行。若在write combining store buffer的数据在未解决cache miss期间，数据会直接在store buffer读写。）
 ### 
-## 优化基本方针
+## 基本优化方针
+
+## 内存数据使用模式
+为了更有针对性地利用cache，我们将内存数据的使用分为以下三种模式:
+- Temporal: 数据会立马被使用
+- Non-temporal: 数据会被使用一次但短时间内不会再次被使用
+- Spatial: 相邻位置的数据会被使用（比方说在同一个cache line上）
 ## 数据预取(cache prefetch)
+首先无论对内存数据的读/写都要其先出现在cache上，这时就可以利用数据预取的手段，在数据被读写前将其先一步加载到cache上。
 ### 硬件预取
 由硬件逻辑实现的cache prefetch，对编程人员不可见
 ### 软件预取
 软件预取是由编程人员或编译器主观的加入PREFETCH指令到执行代码中实现的。不同的data caching策略由不同的PREFETCH指令，合适的策略可以可以提高cache利用率和减少cache污染。
-#### 策略
-- Temporal: 数据会立马被使用
-- Non-temporal: 数据会被使用一次但短时间内不会再次被使用
-- Spatial: 相邻位置的数据会被使用（比方说在同一个cache line上）
 #### 指令
 1. PREFETCHNTA: (Non-temporal区域)预取到最接近处理器的Non-temporal区域，最小化cache污染
 2. PREFETCHT0 : (Temporal区域)预取到所有层级的cache上
@@ -79,15 +82,13 @@ static inline void prefetch_range(void *addr, size_t len)
 1. 老的微架构
 2. prefetch一个造成fault/exception的地址
 3. L1cache到L2cache的访问请求数超过硬件限制值
-## Cacheability Control
-### The Non-temporal Store Instructions
-根据写数据的位置，可分为如下特性
-- write combining(合并写): 写的数据在同一个cache line中，会更新在write combining store buffer中之后合并写到内存中
-- write collapsing: 写的数据在同一位置，则最后一次更新的数据可见
-- weakly ordered: 在一次 WC stores和一次 WC stores/ other loads or stores之间不保证数据存储的顺序性
-- uncacheable and not write-allocating: 就在cache中，写操作不会让cache向内存请求数据
-#### Fencing Instructions
-fencing 指令是针对于解决weakly ordered问题用的。其强制将store buffer/Invalidate queue上的数据刷新至cache上
+## store 数据存储 
+写数据行为后将cache更新到内存上。为了实现此时有cache存在与没cache时一样，cache有两种更新数据的策略
+1. write-through
+2. write-back
+除此之外，还有另外两种特殊的cache更新策略
+3. write-combining
+4. uncacheable
 #### Streaming Non-temporal Stores
 在流式SIMD指令中MOVNTPS, MOVNTPD, MOVNTQ, MOVNTDQ, MOVNTI, MASKMOVQ, MASKMOVDQU是non-temporal store，也就是数据存储后并不会在短时间内再次使用，同时流式存储指令可以使用于跨不同内存类型的内存区域(For instance, a regionmay be mapped as write-back (WB) using page attribute tables (PAT) or memory type range registers(MTRRs) and yet is written using a streaming store.)。
 
@@ -156,8 +157,20 @@ public static long runCaseTwo() { // faster case
 }
 
 ```
+## load 数据加载
+## Fencing Instructions
+fencing 指令是针对于解决weakly ordered问题用的。其强制将store buffer/Invalidate queue上的数据刷新至cache上。
 ## MISC
 1. 可以通过查看`/sys/devices/system/cpu/cpu0/cache/index`文件查看cpu cache信息
 ## 参考
 1. [数据预取](https://www.cnblogs.com/dongzhiquan/p/3694858.html)
 2. [write combining](http://ifeve.com/writecombining/) 
+3. [Memory part 2:CPU cache - Ulrich Drepper](https://lwn.net/Articles/252125/)
+4. https://lwn.net/Articles/250967/ mem1
+5. https://lwn.net/Articles/253361/ mem3
+6. https://lwn.net/Articles/254445/ mem4
+7. https://lwn.net/Articles/255364/ mem5
+8. https://lwn.net/Articles/256433/ mem6
+9. https://lwn.net/Articles/257209/ mem7
+10. https://lwn.net/Articles/258154/ mem8
+11. https://lwn.net/Articles/258188/ mem9
