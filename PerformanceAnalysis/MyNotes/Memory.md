@@ -19,6 +19,10 @@
 ![CPU集成内存控制器](pics/Integrated_Memory_Controller.png)
    - CPU集成内存内存控制器。CPU直接与RAM传输。这类架构在AMD的一些SMP系统上比较流行，Intel用类似架构实现了Common System Interface(CSI)。这类架构的好处就是传输不用经过北桥，会特别快。坏处就是内存不是一致的，也就是NUMA(Integrated Memory Controller)的由来。另外，当访问直接与cpu相连的RAM速度正常，但当一块cpu访问与另一块cpu相连的内存时，就会需要interconnects(如图所示cpu1-cpu2要1条，cpu1到cpu4要2条)。每一条interconnects都会对总体性能带来损耗，这种损耗被称为"NUMA factors"。进一步地，有架构将多个CPU整合进一个节点里，一个节点共享一个内存控制器以减少节点内cpu访问RAM所需的interconnect，这种架构下的"NUMA factors"更为大。
 ## RAM Types
+#### Static RAM
+贵。
+cache就是这种
+#### Dynamic RAM
 ## refer
 1. [What every programmer should know about memory - Ulrich Drepper](https://lwn.net/Articles/250967/)
 2. [MEMORY DEEP DIVE SERIES - Frank Denneman](https://frankdenneman.nl/2015/02/18/memory-configuration-scalability-blog-series/)

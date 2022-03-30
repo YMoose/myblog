@@ -1,4 +1,6 @@
 # cache
+## intro
+在CPU和DRAM之间存在极大的性能鸿沟。如果全用SRAM则性价比过低。如果使用部分SRAM来替代
 ## cache 模型
 ![cache模型](pics/cache_model.png)
 ### 现代cpu上的cache使用框架
