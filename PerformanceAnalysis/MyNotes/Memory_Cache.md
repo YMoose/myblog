@@ -1,8 +1,18 @@
 # cache
+
 ## intro
-在CPU和DRAM之间存在极大的性能鸿沟。如果全用SRAM则性价比过低。如果使用部分SRAM来替代
-## cache 模型
+在CPU和DRAM之间存在极大的性能鸿沟。如果全用SRAM则性价比过低。如果使用一小部分SRAM来替代某些特定内存地址，这种方案可以将SRAM看作是一些额外的寄存器。但这种方案存在一定的问题，首先这部分SRAM和虚拟内存映射需要处理器通过软件去管理使用这部分内存区域，其次不同处理器的不同大小的SRAM使得这个管理更麻烦，最终导致提升的性能全被这管理这部分的代码消耗掉。另外一种方案是让处理器硬件管理SRAM，SRAM对操作系统以及用户不可见。在这种场景下SRAM上只保存一份DRAM上正准备使用的内存拷贝。正是因为程序的空间和时间局部性使得这样的方案能提升性能。
+
+## CPU - cache 模型
+![早期计算机架构上的Cache位置](pics/Minimum_Cache_Configuration.png)  
+在上图暂且先将北桥抽象，简化为CPU直接于cache相连，cache与memory通过FSB(前端总线)相连  
+![3层cache的CPU布局](pics/Processor_with_3Level_Cache.png)  
+将CPU cache分为不同速率的三个层次，同时在最接近CPU的层级区分是数据cache和指令cache。  
+![现代多核CPU计算机架构上的CPU-内存模型](pics/Multi_processor.png)  
+core和thread的区别是一个core独享所有的硬件资源，而一个thread与另一个thread共享同一个core上的硬件资源。上图展示的是多处理器，多core，多thread的示意图。两个处理器，一个处理器上有两个core，一个core里有两个thread。thread共享使用core上的L1 caches，而一个core则独占自己的L1 cache，共享L2/L3 cache，一个处理器独享自己的L2/L3 cache。  
+### cache模型
 ![cache模型](pics/cache_model.png)
+
 ### 现代cpu上的cache使用框架
 ![现代CPU上的cache框架](pics/modern_cpu_cache_framework.jpg)  
 - write combining store buffer: 64Byte的缓冲区同时有一个64bit的bitmap，每更新其中的Byte会设置相应的bit。（写数据时发生cache miss，会先将数据暂存于write combining store buffer, 以便后续指令继续执行。若在write combining store buffer的数据在未解决cache miss期间，数据会直接在store buffer读写。）
@@ -165,6 +175,7 @@ fencing 指令是针对于解决weakly ordered问题用的。其强制将store b
 ## MISC
 1. 可以通过查看`/sys/devices/system/cpu/cpu0/cache/index`文件查看cpu cache信息
 ## 参考
-1. [数据预取](https://www.cnblogs.com/dongzhiquan/p/3694858.html)
-2. [write combining](http://ifeve.com/writecombining/) 
-3. [Memory part 2:CPU cache - Ulrich Drepper](https://lwn.net/Articles/252125/)
+1. [csapp 程序优化](https://www.bilibili.com/video/BV1iW411d7hd?p=12)
+2. [数据预取](https://www.cnblogs.com/dongzhiquan/p/3694858.html)
+3. [write combining](http://ifeve.com/writecombining/) 
+4. [Memory part 2:CPU cache - Ulrich Drepper](https://lwn.net/Articles/252125/)
