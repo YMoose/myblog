@@ -46,4 +46,69 @@ AVX-512 是 Intel 公司在 2013 年发布的一套扩展指令集，其指令�
 1. 检查内存存取的依赖，是否会影响数据并行操作
 2. 通过SIMD减少最内层循环的次数
 #### 改写SIMD的方法
-![SIMD写法](pics/SIMD_Coding_Methodologies.png)
+![开发高性能代码的取舍](pics/SIMD_Coding_Methodologies_Trade-offs.png)
+##### 看一个例子
+语言原生代码
+```C++
+void add(float *a, float *b, float *c)
+{
+    int i;
+    for (i = 0; i < 4; i++) {
+        c[i] = a[i] + b[i];
+    }
+}
+```
+Assembly
+```C++
+void asm_add(float *a, float *b, float *c)
+{
+    __asm {
+    mov eax, a
+    mov edx, b
+    mov ecx, c
+    movaps xmm0, XMMWORD PTR [eax]
+    addps xmm0, XMMWORD PTR [edx]
+    movaps XMMWORD PTR [ecx], xmm0
+    }
+}
+```
+Intrinsics
+```C++
+#include <xmmintrin.h>
+void add(float *a, float *b, float *c)
+{
+    __m128 t0, t1;
+    t0 = _mm_load_ps(a);
+    t1 = _mm_load_ps(b);
+    t0 = _mm_add_ps(t0, t1);
+    _mm_store_ps(c, t0);
+}
+```
+Classes
+```C++
+#include <fvec.h>
+void classes_add(float *a, float *b, float *c)
+{
+    F32vec4 *av=(F32vec4 *) a;
+    F32vec4 *bv=(F32vec4 *) b;
+    F32vec4 *cv=(F32vec4 *) c;
+    *cv=*av + *bv;
+}
+```
+Automatic Vectorization (only supported by The Intel C++ Compiler)
+Compile this code using the -QAX and -QRESTRICT switches of the Intel C++ Compiler, version 4.0 or later.
+```C++
+void auto_add (float *restrict a, float *restrict b, float *restrict c)
+{
+    int i;
+    for (i = 0; i < 4; i++) {
+        c[i] =   a[i] + b[i];
+    }
+}
+```
+## 修改代码
+### 栈对齐 & 数据对齐
+1. 使用填充对齐数据
+2. 使用数组类型的数据结构使得数据连续
+3. 视操作将数据结构拆为多个数据结构元素的数组使得数据连续
+4. 使用__M128* 数据结构会一定程度上自动将数据栈对齐到16byte的边界(可能会产生数据栈空洞)
