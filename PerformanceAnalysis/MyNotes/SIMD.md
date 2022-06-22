@@ -107,8 +107,20 @@ void auto_add (float *restrict a, float *restrict b, float *restrict c)
 }
 ```
 ## 修改代码
-### 栈对齐 & 数据对齐
+### 栈对齐&&数据对齐
 1. 使用填充对齐数据
 2. 使用数组类型的数据结构使得数据连续
 3. 视操作将数据结构拆为多个数据结构元素的数组使得数据连续
-4. 使用__M128* 数据结构会一定程度上自动将数据栈对齐到16byte的边界(可能会产生数据栈空洞)
+4. （Intel编译器）使用__M128* 数据结构会一定程度上自动将数据栈对齐到16byte的边界(可能会产生数据栈空洞)
+5. 对齐算法
+```C
+/* Make newp a pointer to a 64-bit aligned array of NUM_ELEMENTS 64-bit elements. */
+double *p, *newp;
+p = (double*)malloc (sizeof(double)*(NUM_ELEMENTS+1));
+newp = (p+7) & (~0x7); // newp肯定64bits对齐 
+```
+6. 使用128-bitXMM寄存器读写时，要保证内存的16Byte对齐，以避免性能问题（MMX指令集的话时8Byte对齐）
+### 提升内存使用率
+#### 修改数据布局
+1. 可以将结构的数组（Array of Structure）变为多个结构元素的数组(Structure of Array)，当然这将伴随着算法上的改变
+2. 利用块技术，将运算所需的结构元素的数组再按照SIMD可以处理的长度划分为同样数量的组（会牺牲一些内存），这样除了可以充分里用SIMD的矢量操作性外，可以
