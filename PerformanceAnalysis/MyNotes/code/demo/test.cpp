@@ -4,6 +4,8 @@ using namespace std;
 
 #define VECTOR_LEN 4
 
+__declspec(align(16)) float buffer[400];
+
 void add(float *a, float *b, float *c)
 {
     int i;

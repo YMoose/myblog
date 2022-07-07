@@ -1,4 +1,9 @@
 # Intel VTune
+## 0. Intel VTune 介绍
+VTune是一套能力强大的性能分析工具。
+### 0.1. Intel VTune的生态位
+#### 0.1.1. 性能分析生态
+性能提升是一个发现问题解决问题的过程
 - 原理: 主要还是采样
 - 能力: 可以本机的，也可以远程的，可以普通程序，也可以attach到系统进程
 ## Vtune 官方测试模板
@@ -12,3 +17,9 @@
 4. 设置"CPU Mask"
 5. 手动设置"SAV(sample after value)"值
 6. 减少需要采集的Performance Event数量
+
+## 其他
+### DPDK应用的CPU利用率
+DPDK从18.11版本(带上编译参数`CONFIG_RTE_ETHDEV_RXTX_CALLBACKS`和`CONFIG_RTE_ETHDEV_PROFILE_WITH_VTUNE`(located in the`config/common_base config ` file))后开启对vtune(使用I/O分析)的支持。
+## 参考
+1. []
