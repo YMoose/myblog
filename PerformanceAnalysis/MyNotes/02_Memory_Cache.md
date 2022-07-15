@@ -101,6 +101,7 @@ static inline void prefetch_range(void *addr, size_t len)
 除此之外，还有另外两种特殊的cache更新策略
 3. write-combining
 4. uncacheable
+> 同时因为现在的多核处理器架构，还需要处理缓存一致性的问题。
 #### Streaming Non-temporal Stores
 在流式SIMD指令中MOVNTPS, MOVNTPD, MOVNTQ, MOVNTDQ, MOVNTI, MASKMOVQ, MASKMOVDQU是non-temporal store，也就是数据存储后并不会在短时间内再次使用，同时流式存储指令可以使用于跨不同内存类型的内存区域(For instance, a regionmay be mapped as write-back (WB) using page attribute tables (PAT) or memory type range registers(MTRRs) and yet is written using a streaming store.)。
 
