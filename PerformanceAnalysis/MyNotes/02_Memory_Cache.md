@@ -173,6 +173,12 @@ public static long runCaseTwo() { // faster case
 ## load 数据加载
 ## Fencing Instructions
 fencing 指令是针对于解决weakly ordered问题用的。其强制将store buffer/Invalidate queue上的数据刷新至cache上。
+## 缓存一致性协议
+实现缓存一致性协议的关键就是跟踪共享内存的状态。
+### Directory based
+共享内存的状态被存放在一个位置，叫做`directory`。常用在SMP中，可以启用一个中心化的地址，与内存或者某个单一有顺序的内存映射（如最后一级缓存）对应
+### Snooping 嗅探
+在SMP上所有的cache可以通过总线相连，所有的缓存控制监控器可以监听这些通信介质以决定是否要对某块内存进行置换或者对模块内存请求。Snooping协议也可以实现在基于地址的缓存一致性协议之上。
 ## MISC
 1. 可以通过查看`/sys/devices/system/cpu/cpu0/cache/index`文件查看cpu cache信息
 ## 参考
