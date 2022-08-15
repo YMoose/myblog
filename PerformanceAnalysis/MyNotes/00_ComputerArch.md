@@ -1,6 +1,6 @@
 # 从intel_x86看计算机体系架构
 
-## x86发展模式
+## x86发展模式看主板CPU架构
 ![intel Tock-Tick 发展模式](pics/intel_tock-tick_mode.webp)
 - Grantley是intel平台代号，代表搭配某一代CPU的主板chipset结构，不同的chipset结构就对应了不同的主板PCH接口
 - Haswell是CPU代号

@@ -2,7 +2,7 @@
 ## 背景知识
 ### 现代乱序执行CPU
 ![现代乱序执行CPU示意图](ModernIntelCPUPipeline.png)
-现代CPU通常采用流水线乱序执行的方式加速。  
+现代CPU通常采用流水线乱序执行的方式ILP(Instruction-level parallelism)加速。  
 如上图所示，可以将乱序执行流水线分为两个部分，Frontend 和 Backend。  
 - Frontend主要负责取指、译码
 - Backend主要负责获取指令执行需要的数据、计算、访存、写回等剩余工作  
@@ -51,7 +51,6 @@ PMU中主要由PMC(performance monitor counter)组成，cpu中有若干PMC(可�
 #### 2.2. Core Bound : 调度器不平衡，相同类型的指令多，导致后端为执行完成，未释放微指令调度时的port或者除法指令过多
 ### 3. Retiring : 理想状况的流水线执行比重
 但仍然可以优化!有计算核心的性能限制(好比说除法会有更低的计算性能，缺少指令级别的并行(考虑使用SIMD))，得靠编译器参数(如DAZ或FTZ)优化。如还需优化则考虑通过增加并行化解决
-
 #### 3.1. BASE
 ##### 3.1.1. FP-arithmetic : 浮点数计算
 ###### 3.1.1.1. Scalar : 标量的
