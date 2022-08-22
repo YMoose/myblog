@@ -53,3 +53,5 @@ dpdk配置
 ## 术语
 FIB: 转发表Forwarding Info Base
 RIB: 路由表Routing Info Base
+## 问题&思考
+node graph（有点像设计模式中的chain of responsibility)是如何实现的?(另外可以看看feature功能的实现)
