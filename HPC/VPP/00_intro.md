@@ -1,5 +1,7 @@
 # VPP The Vector Packet Processor
 网络数据的目的是交流，而交流存在自相似性。VPP通过矢量处理来解决自相似性带来的复杂性，从而提升性能
+## VPP项目架构
+![VPP Layers](pics/VPP_Layering.png)
 ## 配置VPP
 对于所以配置参数，可以在源代码中搜索VLIB_CONFIG_FUNCTION和VLIB_EARLY_CONFIG_FUNCTION的调用。  
 VLIB_CONFIG_FUNCTION(foo_config, "foo"):函数将"foo"参数块中给出的所有参数(foo{arg1 arg2 arg3})传递给foo_config函数进行调用
@@ -38,13 +40,6 @@ dpdk配置
 1. 使用vpp/extras/emacs/make-plugin.sh脚本在vpp/src/plugins目录下生成模板代码
 2. 在vpp/src/plugins/<your plugin>目录下进行开发
 3. 在vpp目录下rebuild
-#### 源码学习
-##### 宏
-|marco|代码位置|功能|备注|
-| - | - | - | - |
-|VLIB_PLUGIN_REGISTER()|src/vlib/unix/plugin.h:150|生成vlib_plugin_registration_t结构||
-|VLIB_INIT_FUNCTION()|src/vlib/init.h:173|
-
 #### 开发规范
 可以参考src/plugins下的代码
 ##### 其他
@@ -53,5 +48,3 @@ dpdk配置
 ## 术语
 FIB: 转发表Forwarding Info Base
 RIB: 路由表Routing Info Base
-## 问题&思考
-node graph（有点像设计模式中的chain of responsibility)是如何实现的?(另外可以看看feature功能的实现)
