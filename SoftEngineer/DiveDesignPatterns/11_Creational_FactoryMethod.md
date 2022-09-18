@@ -4,4 +4,4 @@
 ## 动机
 将生成**变化的**具体对象的时刻尽可能推迟到要使用到具体对象的时刻，分离出了工厂方法去实现推迟。
 ## 实现
-![UML](pics/10_FactoryMethod_UML.png)
+![UML](pics/11_FactoryMethod_UML.png)
