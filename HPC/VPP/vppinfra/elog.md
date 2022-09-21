@@ -1,5 +1,11 @@
-# VPP Event Logger
-- event-logger代码在src/vppinfra/elog.[ch]
+# event-log
+数据结构头文件目录
+- src/vppinfra/elog.h
+- src/vppinfra/elog.c
+- src/vppinfra/test_elog.c
+## 简介
+eventlog是vpp实现的非常轻量级（小于100ns）的事件日志服务
+序列化让eventlog的保存与最终的合并变得简单。
 - event-logger在vlib_main(src/vlib/main.c:2145)函数中启动
 - 主要数据结构为elog_main_t, 存储在vlib_main_t->elog_main
 - 默认ring size 为128K个事件
