@@ -3,14 +3,14 @@
 ## 动机
 在某些系统存在事件及其观察者(即通知依赖关系)的时候，存在**稳定的**事件上下文，**变化的**（且多个）观察者（及观察者应对事件的行为）
 ## 实现
-![UML](pics/35_Observer_UML.png)
+![UML](pics/36_Observer_UML.png)
 ## 问题
 1. 消息发送方（发布者）和接收方（订阅者）的交互模式
 2. 不同的发布者类和不同的订阅者类耦合
 ## 解决方案
-![订阅机制](pics/35_Observer_subscription_mechanism.png)
+![订阅机制](pics/36_Observer_subscription_mechanism.png)
 - 为发布者类添加订阅机制（实现订阅抽象接口），接收方对象通过订阅接口订阅和取消订阅
-![被通知机制](pics/35_Observer_notification_mechanism.png)
+![被通知机制](pics/36_Observer_notification_mechanism.png)
 - 为订阅者添加被通知机制（实现被通知抽象接口，接口中声明通知方法及其参数，这样发布者的消息还可以带一些上下文内容），发布者对象通过被通知接口与订阅者交互
 ## 抽象
 1. 抽象的发布者订阅相关方法接口
