@@ -183,6 +183,8 @@ fencing 指令是针对于解决weakly ordered问题用的。其强制将store b
 在SMP上所有的cache可以通过总线相连，所有的缓存控制监控器可以监听或者发送广播以同步共享内存的状态。由于 snooping 使用了广播会占用总线带宽，一般认为 snooping 扩展性不如 directory-based，但是在带宽足够的前提下，snooping 会更快。也有在directory-based之上的snooping协议。
 ## MISC
 1. 可以通过查看`/sys/devices/system/cpu/cpu0/cache/index`文件查看cpu cache信息
+## todo 
+1. 伪共享
 ## 参考
 1. [csapp 程序优化](https://www.bilibili.com/video/BV1iW411d7hd?p=12)
 2. [数据预取](https://www.cnblogs.com/dongzhiquan/p/3694858.html)
