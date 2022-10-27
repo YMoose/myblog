@@ -83,6 +83,8 @@ typedef enum
 3. 调用 vlib_node_main_init(src/vlib/node.c:596)函数对node graph进行初始化(可通过此函数返回值查看是否初始化成功)，包括根据node之间关系进行串联。
 ## node操作
 在vlib_main_loop(src/vlib/main.c:2040)函数中处理node中的操作
+### 进入vlib_main_loop
+
 ### 核心node操作循环
 1. 收包的入口(src/vlib/main.c:1867-1872)
 2. dispatch_node(src/vlib/main.c:1142)函数
