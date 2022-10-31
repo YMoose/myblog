@@ -30,3 +30,14 @@
        rtt : 10000
        w: 1
 ```
+## 模拟流量
+可以通过以下命令编译流量模拟生成器
+```
+$cd linux
+$./b configure  (only once)
+$./b build
+```
+运行命令，可以生成erf流量文件(类似pcap)
+```
+./bp-sim-64-debug -f cap2/vpp_sfr1.yaml -o /tmp/my.erf
+```
