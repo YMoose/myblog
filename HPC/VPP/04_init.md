@@ -20,7 +20,7 @@
 
 ### main函数
 1. main函数(src/vpp/vnet/main.c:106)为程序入口，随后调用vlib_unix_main()
-2. vlib_unix_main函数(src/vlib/unix/main.c)
+2. vlib_unix_main函数(src/vlib/unix/main.c): 进行一些基础模块的初始化
    1. vlib_plugin_early_init(src/vlib/unix/plugin.c:587)函数(通过dlopen)加载插件目录下所有插件并(通过dlsym)取得插件的VLIB_PLUGIN_REGISTER宏构造的一些插件描述信息的符号地址 
    2.  vlib_call_all_config_functions(src/vlib/init.c:405)函数解析所有的命令行选项，并调用vlib_config_function_runtime_t->function([VLIB_CONFIG_FUNCTION](#main函数之前)构造出来的函数)对插件本身的一些配置进行解析配置
    3.  vlib_thread_stack_init(src/vlib/unix/main.c677)为下列线程创建线程栈
