@@ -15,10 +15,17 @@
 ### 选择建议
 通常内存控制器会有单通道最大rank数量的限制，所以如果要特大容量的内存的话LRDIMM就是首选了。不然可以选择RDIMM进一步提高带宽和减少延迟
 ## Memory Subsystem Bandwidth
-**channel width(bits/transfer) x transfers/second = bps**
+**per channel width(bits/transfer) x channel count x transfers/second = bps**
 ## Optimizing For Performance
-
+### interleaving across channel 通道叠加
+多通道其实就是(cpu上/主板上)多个内存控制器并行。通道的利用涉及到region的概念，一个region内的DIMM数量最高可以和通道数量持平，此时这个region的吞吐率最高
+### interleaving across rank
 ## terms
-DDR(Double Data Rate): 是按照内部技术对内存的分类，全名是DDR SDRAM(Synchronous Dynamic Random Access Memory，同步动态随机存储器)，含义是在时钟的电压上升沿和下降沿都会发生数据传输。所以DDR内存的MT/s (mega transfers per second)是IO bus频率的两倍
+DDR(Double Data Rate): 是按照内部技术对内存的分类，全名是DDR SDRAM(Synchronous Dynamic Random Access Memory，同步动态随机存储器)，含义是在时钟的电压上升沿和下降沿都会发生数据传输。所以DDR内存的MT/s (mega transfers per second)是IO bus频率的两倍。另外通常DDR\DDR2\DDR3\DDR4接口都是64比特的channel width
 channel: CPU中的内存通道,channel width
 Error Checking and Correction (ECC) memory: 错误检测，可能会导致2~3%性能损耗
+region: 
+## 参考
+1. https://frankdenneman.nl/2015/02/20/memory-deep-dive/
+2. https://en.wikipedia.org/wiki/Memory_bandwidth
+3. https://www.intel.com/content/www/us/en/support/articles/000055509/server-products/server-boards.html
