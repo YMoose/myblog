@@ -17,15 +17,20 @@
 ## Memory Subsystem Bandwidth
 **per channel width(bits/transfer) x channel count x transfers/second = bps**
 ## Optimizing For Performance
-### interleaving across channel 通道叠加
-多通道其实就是(cpu上/主板上)多个内存控制器并行。通道的利用涉及到region的概念，一个region内的DIMM数量最高可以和通道数量持平，此时这个region的吞吐率最高
-### interleaving across rank
+### interleaving across channel 通道交替
+多通道其实就是(cpu上/主板上)多个内存控制器交替访问。内存控制器会尽可能多地将内存通道组合为一个region，一个region内的DIMM数量最高可以和通道数量持平，此时这个region的吞吐率最高。多个内存控制器会交替访问不同的region。
+> 这里牵涉到DPC(DIMM per Channel), 通常情况下DPC为2的情况下不会对吞吐率的影响不会太大，但当DPC到3时情况会变得很微妙，会导致内存频率下降甚至主板根本不支持，所以尽可能不要让DPC到3
+> ![1](pics/07-Memory-Interleaving-two-regions-384-GB.png)
+> ![2](pics/08-Memory-Interleaving-3-DPC-384-GB.png)
+### interleaving across rank rank交替
+当每个channel上的DIMM上存在两个及以上rank时，内存控制器可以在rank上交替并发操作。这个可以减少latency。
 ## terms
-DDR(Double Data Rate): 是按照内部技术对内存的分类，全名是DDR SDRAM(Synchronous Dynamic Random Access Memory，同步动态随机存储器)，含义是在时钟的电压上升沿和下降沿都会发生数据传输。所以DDR内存的MT/s (mega transfers per second)是IO bus频率的两倍。另外通常DDR\DDR2\DDR3\DDR4接口都是64比特的channel width
-channel: CPU中的内存通道,channel width
+DDR(Double Data Rate): 是按照内部技术对内存的分类，全名是DDR SDRAM(Synchronous Dynamic Random Access Memory，同步动态随机存储器)，含义是在时钟的电压上升沿和下降沿都会发生数据传输。所以DDR内存的MT/s (mega transfers per second)是IO bus频率的两倍。
+channel: CPU中的内存通道, 内存之所以有多通道是因为cpu集成了多个内存控制器。通常DDR\DDR2\DDR3\DDR4接口都是64比特的channel width
 Error Checking and Correction (ECC) memory: 错误检测，可能会导致2~3%性能损耗
-region: 
+region：如果一个region没有用满所有的memory channel 那么这个region的吞吐量就没用满的那么高，所以插内存的时候尽量在一个region插满，而不是插到两个region上
 ## 参考
 1. https://frankdenneman.nl/2015/02/20/memory-deep-dive/
 2. https://en.wikipedia.org/wiki/Memory_bandwidth
 3. https://www.intel.com/content/www/us/en/support/articles/000055509/server-products/server-boards.html
+4. https://www.intel.com/content/www/us/en/support/articles/000005657/boards-and-kits.html
