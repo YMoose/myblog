@@ -8,6 +8,10 @@
 4. RDIMM(Registered DIMM,带寄存器的双列直插内存模块): 带寄存器的双列直插内存模块。RDIMM在内存条上加了一个寄存器进行传输，其位于CPU和内存颗粒之间，既减少了并行传输的距离，又保证并行传输的有效性。由于寄存器效率很高，因此相比UDIMM，RDIMM的容量和频率更容易提高。
 5. LRDIMM(Load Reduced DIMM,低负载双列直插内存模块): DDR3出现的技术，使用比RDIMM简单的缓冲（非寄存器）可缓存同时控制总线和数据总线访问，减少了主板上的电压负载，可以进一步提升内存频率，以及内存容量。但如果开启了rank复用模式下，因为内存板上寄存器的原因，内存控制器无法知道访问的rank是否位于同一个DIMM上，所以需要花费时间切换DRAMS，这可能会带来25%的性能损耗
 6. 搭配可感知Rank的内存控制器的LRDIMM: 2012后第二代DDR3平台的内存控制器可以感知到LRDIMM片上缓存后面的物理rank，使得其可以对访问有更细微的控制（时间上等），减少了LRDIMM与RDIMM间延迟差距和带宽差距。DDR4有了更进一步的提高
+#### DDR4 内存
+DDR4内存的引脚布局与DDR3不同
+#### DDR5 内存
+// todo
 ### 内存子系统带宽
 内存子系统带宽受到多种因素的影响
 1. 每个cpu内存channel里的rank数量：每个cpu内存channel里的rank增多，（所需要的电压就越大，为限制功耗）会导致内存频率的下降。
@@ -24,6 +28,9 @@
 > ![2](pics/08-Memory-Interleaving-3-DPC-384-GB.png)
 ### interleaving across rank rank交替
 当每个channel上的DIMM上存在两个及以上rank时，内存控制器可以在rank上交替并发操作。这个可以减少latency。
+## NUMA and data locality
+CPU的处理性能和内存的访问性能间的差距，随着单核CPU技术的发展一直在变大。到2004年单核CPU的发展遇上了功耗墙导致CPU向多核发展，但内存和CPU的差距仍然存在，进一步来说，多核CPU对内存访问提出了更大带宽的要求。
+### Parallel Memory Architect
 ## terms
 DDR(Double Data Rate): 是按照内部技术对内存的分类，全名是DDR SDRAM(Synchronous Dynamic Random Access Memory，同步动态随机存储器)，含义是在时钟的电压上升沿和下降沿都会发生数据传输。所以DDR内存的MT/s (mega transfers per second)是IO bus频率的两倍。
 channel: CPU中的内存通道, 内存之所以有多通道是因为cpu集成了多个内存控制器。通常DDR\DDR2\DDR3\DDR4接口都是64比特的channel width
