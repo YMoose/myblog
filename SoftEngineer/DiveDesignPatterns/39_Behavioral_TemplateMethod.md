@@ -10,3 +10,19 @@
 ![UML](pics/39_TemplateMethod_UML.png)
 ## 应用到的原则
 1. 早绑定 -> 晚绑定
+## 代码实现
+### C
+``` C
+static_always_inline void
+pop_ctx_init (···)
+{
+  ···
+  ret_ctx->pop_mime = mime_ctx_init (sess->thread_index, sess, 0, APP_TYPE_POP,
+				     File_Proto_POP, ret_ctx);
+  mime_ctx_register_header_line_handler (
+    ret_ctx->pop_mime, pop_header_line_handler, (u8 *) ret_ctx);
+  mime_ctx_register_body_line_handler (ret_ctx->pop_mime,
+				       pop_body_line_handler, (u8 *) ret_ctx);
+  ···
+}
+```
