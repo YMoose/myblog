@@ -8,3 +8,5 @@
 **稳定的**请求对象，**变化的**处理行为流程，隔离了请求对象和处理流程
 ## 实现
 ![UML](pics/31_ChainOfResponsibility_UML.png)
+## 代码实现
+vpp中的graph node框架，请求对象就是frame

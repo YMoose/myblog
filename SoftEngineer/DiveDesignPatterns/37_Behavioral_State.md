@@ -7,3 +7,6 @@
 处理**变化的**状态（运行时变化的状态和需求变化的状态类型），状态对象自行封装状态的跃迁行为以实现状态转移接口
 ## 实现
 ![UML](pics/37_State_UML.png)
+## 代码实现
+### C++
+dive_design_patterns\C++\src\State\Conceptual\main.cc & old_main.cc
