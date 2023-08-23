@@ -11,6 +11,7 @@
 用什么样的方法解决问题
 抽象
 抽象出可能的变化，并通过设计模式限制变化的方向
+**refactor** to design pattern
 ## 举例来讲
 1. 模板方法
    - [模板模式](..\DiveDesignPatterns\39_Behavioral_TemplateMethod.md)
