@@ -29,13 +29,13 @@
 内核启动参数
 #### cpuinfo
 #### *内存相关*
-#### meminfo
+##### meminfo
 提供了内存的分布与使用情况
-#### slabinfo
+##### slabinfo
 slab的使用情况（一些特有的对象拥有自己的slab pool（比如network buffers，directory cache等）），slab pool在linux中作为page之上更细分的内存管理单位。
-#### buddyinfo
+##### buddyinfo
 显示当前可用的不同大小的内存页框数量
-#### pagetypeinfo
+##### pagetypeinfo
 更详细的buddyinfo
 #### interrupts
 可以查看cpu中断次数统计，也可以查看中断号对应的中断函数
