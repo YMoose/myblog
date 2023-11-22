@@ -1,7 +1,7 @@
 # OS
 ## 操作系统本质
 ![冯·诺依曼结构](pic/Von_Neumann_Architecture.svg)
-计算任务的处理核心部件是CPU和Memory Unit，其他均可以是为input和output。
+计算任务的处理核心部件是CPU和Memory Unit（CPU与Memory Unit可以看作是有限状态机），其他均可以是为input和output。
 操作系统是辅助计算机硬件完成计算任务（job）的。操作系统的功能可以根据计算机发展阶段来分析。
 - 第一阶段：单用户系统：无功能（none）：CPU和Memory Unit的指令&数据直接从硬件上获取，Input和Output均只有单一形式；
 - 第二阶段：批处理系统&多道程序系统：基础功能（basic）：CPU和Memory Unit的指令&数据由操作系统提供，Input和Output由操作系统管理
