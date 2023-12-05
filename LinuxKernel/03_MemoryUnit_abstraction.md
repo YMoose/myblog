@@ -1,5 +1,13 @@
-# 2. 存储管理
-## 2.1 Linux内存管理的基本框架
+# 2. 内存的抽象
+内存抽象的需求来自于
+## 2.1. Uses main memory efficiently
+Use DRAM as a cache for parts of a virtual address space
+## 2.2. Simplifies memory management
+Each process gets the same uniform linear address space
+## 2.3. Isolates address spaces
+1. One process can't interfere with another's memory
+2. User program cannot access privileged kernel information and code
+## ?.1 Linux内存管理的基本框架
 Linux内核的映射机制设置为三层：
 - PGD->PMD->PE->PA
 虚拟Linux内存管理单元分成四步:  
@@ -19,7 +27,7 @@ GDT(全局段描述符表)的表项包括：
 5. 第5项：当前进程的数据段
 6. 其他进程的LDT(局部段描述符表)
 7. 其他进程的TSS(任务状态段)
-## 2.2 地址映射的全过程
+## ?.2 地址映射的全过程
 ### 内存管理方式
 页式存储优点：
 - 固定大小，方便管理
@@ -48,7 +56,7 @@ linux为了仿真运行段式存储软件还提供了两个相关的系统调用
    可以改变当前进程的局部段描述表为`ptr`指向的一个结构modify_ldt_ldt_s中设置的局部段描述表(段式存储转换后是线性地址，所以仍然在页式存储的管理下)
 2. ym86(struct vm86_struce *info)
    用于模拟另一种寻址方式VM86，用来在保护模式下模拟运行实地址模式的软件
-## 2.3 重要的数据结构和函数
+## ?.3 重要的数据结构和函数
 从硬件上来说，linux内核只需设置好PGD、PT、GDT、LDT及相关寄存器就可以完成地址映射。
 从软件上来说，还需要进行内存管理。
 ### 硬件相关
