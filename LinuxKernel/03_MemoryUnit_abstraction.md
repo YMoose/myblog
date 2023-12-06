@@ -1,9 +1,9 @@
 # 2. 内存的抽象
 内存抽象的需求来自于
-## 2.1. Uses main memory efficiently
-Use DRAM as a cache for parts of a virtual address space
-## 2.2. Simplifies memory management
+## 2.1. Simplifies memory management and usage
 Each process gets the same uniform linear address space
+## 2.2. Uses main memory efficiently
+Use DRAM as a cache for parts of a virtual address space
 ## 2.3. Isolates address spaces
 1. One process can't interfere with another's memory
 2. User program cannot access privileged kernel information and code
