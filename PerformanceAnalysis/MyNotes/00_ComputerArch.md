@@ -11,7 +11,7 @@
 
 ## CPU内部架构
 ![intel Haswell CPU内部架构](pics/cpu_ring_architecture.webp)
-  Haswell这代CPU将core和LLC、memory controller、IO controller和inter-socket Intel QPI用ring bus架构集成。这样的架构会随着core数量增长而使各模块通信延时增长以及带宽降低。于是从 Haswell 开始，高核心数的服务器 CPU 开始使用双环+双内存控制器的架构，在 LCC(Low core count核数少的情况) 中是单环， MCC 中是一个完整环和一个半环，HCC 中则是两个完整的环，半环和完整的环都带有一个独立的内存控制器。跨ring访问回有多一个CPU cycle的延迟，且随着core数增多还是会存在原来的问题
+  Haswell这代CPU将core和LLC、memory controller、IO controller（interrupt controler & PCIe Root Complex）和inter-socket Intel QPI用ring bus架构集成。这样的架构会随着core数量增长而使各模块通信延时增长以及带宽降低。于是从 Haswell 开始，高核心数的服务器 CPU 开始使用双环+双内存控制器的架构，在 LCC(Low core count核数少的情况) 中是单环， MCC 中是一个完整环和一个半环，HCC 中则是两个完整的环，半环和完整的环都带有一个独立的内存控制器。跨ring访问回有多一个CPU cycle的延迟，且随着core数增多还是会存在原来的问题
 ![intel Xeon CPU内部架构](pics/cpu_mesh_architecture.webp)
   Skylake上则引入了mesh架构解决上述core数量增长带来的问题。mesh 架构最多六行六列，其中一行被 UPI 和 PCI 控制器占据，另有两个位置是内存控制器，故最多塞进（6*6-6-2=28）个核心。同时还在mesh中集成了cache agent、home agent和IO 子系统以提高性能。同时每个Core上都有一个CHA以提供跨socket的intel UPI的cache一致性能力。
   另外，在ring bus架构双环中的一环可以被被单独拿出来叫做Cluster-on-die(COD)。在mesh架构上这种CPU上两个独立的功能单元被称为Sub-NUMA Cluster(SNC)。无论是COD还是SNC跨cluster的访问时比cluster内部访问要慢，但是比跨CPU访问快。
