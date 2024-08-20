@@ -1,7 +1,7 @@
 # 并发问题和内存一致性模型（memory consistency model）
 在计算机追寻计算性能的发展道路上，冯诺依曼模型单核CPU性能遇到功耗墙，此后芯片厂商开辟出了通过增加核心数目来增强计算性能的新道路。
-![冯·诺依曼结构](../pic/Von_Neumann_Architecture.svg)
-![多核冯·诺伊曼结构](../pic/multicores_Von_Neumann_Architecture.svg)
+![冯·诺依曼结构](./pic/Von_Neumann_Architecture.svg)
+![多核冯·诺伊曼结构](./pic/multicores_Von_Neumann_Architecture.svg)
 多核情况下，CPU们共享内存（现代cpu上内存的含义被进一步拓展为多级缓存，这里的指的共享内存不包括cpu本地缓存（L1Cache），包括但不限于多cpu共享缓存(L3Cache)）。在对共享内存的读写操作上，多核心计算机在计算过程中需要保证以下一致性，防止竞争条件（race condition）的发生，以达到和单核相同的计算正确性。而讨论正确性的时候可以将其划分为两个子问题
 - memory consistency: 内存一致性问题包含了内存读写操作的规则 
 - cache coherence：缓存一致性问题是支持内存一致性的组成部分之一。其目的是让硬件cache在对共享内存的读写操作没有任何影响，就和没有cache是一样的。问题的主要由硬件工程师解决，不在本文中做重点讨论（多线程程序中伪共享导致的性能问题就是缓存一致性协议带来的）。
@@ -136,7 +136,7 @@ void lock(int thread_index)
 ```
 ### 1.3. 缓存优化
 上面提到的两个优化的导致的问题都是由于冯诺依曼模型中CPU指令执行的顺序乱序导致的，还未涉及内存一致性问题。其解决方案也都是在[内存顺序一致性模型](#参考7)的前提下有效的。
-![sequential consistency model](../pic/sequential_consistency_mem_model.png)
+![sequential consistency model](./pic/sequential_consistency_mem_model.png)
 #### 1.3.1. 内存一致性模型
 内存一致性模型，或简称内存模型。上述提到了的内存顺序一致性模型就是其中一种。内存模型是一个规范，指明了使用共享内存执行的多线程程序所被允许的行为，目的是为了精确定义
    - 编程者能够期望什么行为 
@@ -172,12 +172,12 @@ Load->Store:  if L(a) <p S(b) then L(a) <m S(b)
 Store->Store: if S(a) <p S(b) then S(a) <m S(b)
 Store->Load:  if S(a) <p L(b) then S(a) <m L(b)
 ```
-![sc mem scene](../pic/sequential_consistency_mem_ops_scene.png)
+![sc mem scene](./pic/sequential_consistency_mem_ops_scene.png)
 2. 每个load操作获取的值来自其 **<m** 序列中向前最近一次的store结果
 3. 顺序一致性模型在下表中的这些内存操作必须要按照内存顺序执行（其中RMW是原子读-改-写指令，如test-and-set）
-![sc constrict table](../pic/sequential_consistency_constrict_table.png)
+![sc constrict table](./pic/sequential_consistency_constrict_table.png)
 ##### 1.3.1.2. x86 Total Store Order(x86-TSO)
-![x86 TSO](../pic/x86_tso_model.png)
+![x86 TSO](./pic/x86_tso_model.png)
 为了加速性能，硬件上在CPU和内存间多了一个FIFO的local write queue（a write back cache \ write buffer）。因为实际上大多数情况并不需要保证Store->Load情况下的顺序一致性，所以这部分硬件上的小改动使得在TSO相比SC有了更优秀的性能。
 > 实现上，微架构能够在物理上将store queue（未提交的store操作）和write buffer（已提交的store操作）组合到一起，并且/或者物理上独立出load和store queue。
 使得读\写操作变得如下
@@ -203,14 +203,14 @@ Store->FENCE: if S(a) <p FENCE  then S(a) <m FENCE
 FENCE->Store: if FENCE <p S(a)  then FENCE <m S(a)
 FENCE->FENCE: if FENCE <p FENCE then FENCE <m FENCE
 ```
-![tso mem scene](../pic/TSO_mem_ops_scene.png)
+![tso mem scene](./pic/TSO_mem_ops_scene.png)
 2. 每个load操作获取的值来自其 **<m** 序列中向前最近一次的store结果
 3. TSO在下表中的有X的内存操作必须要按照程序顺序执行
-![tso ops](../pic/tso_constrict_table.png)
+![tso ops](./pic/tso_constrict_table.png)
 ##### 1.3.1.3. Relaxed Memory Consistency
 进一步说，大多数场景下多核的读/写操作并不需要保证顺序一致性，也就是说可以进一步放开内存模型的约束来加速性能，宽松内存模型也因此出现。其要求程序员通过显式的要求来保证少数场景下的顺序一致性。
 举一个并发编程中常用的锁使用的例程B
-![Relaxed Memory Consistency example B](../pic/Relaxed_memory_consistency_exampleB.png)
+![Relaxed Memory Consistency example B](./pic/Relaxed_memory_consistency_exampleB.png)
 这是使用锁实现临界区互斥，期望的程序顺序和内存顺序是`ALL L1i, ALL S1j -> R1 -> A2 -> ALL L2i, ALL S2j`，假定临界区内部的load/store只要考虑好操作间的数据依赖关系，可以根据任意顺序执行（临界区内退化为单核模型）。这样的假设的缘由是临界区内部的操作比锁的acquire和release要频繁，如果减少对临界区内部read/store的约束可以进一步提高性能。
 ###### 1.3.1.3.1. eXample relaxed Consistency model（XC）
 为了教学目的，在[A Primer On Memory Consistency And Cache Coherence](#参考6)一书中介绍了一个eXample relaxed Consistency model（XC）
@@ -232,7 +232,7 @@ FENCE->FENCE: if FENCE <p FENCE then FENCE <m FENCE
 3. XC在下表中的操作顺序约束
 ![Relaxed memory consistency constrict table](..\pic\Relaxed_memory_consistency_constrict_table.png)
 为了达到例程B中期望的程序顺序和内存顺序一致的效果就需要程序员在其中插入FENCE指令，如例程C
-![Relaxed Memory Consistency example C](../pic/Relaxed_memory_consistency_exampleC.png)
+![Relaxed Memory Consistency example C](./pic/Relaxed_memory_consistency_exampleC.png)
 
 ###### 1.3.1.3.2. POWER Relaxed Momory Moder
 Power提供了一个表面上和XC相似的松散模型，但有很多重要的不同之处
