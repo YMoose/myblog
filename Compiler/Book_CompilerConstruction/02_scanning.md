@@ -54,4 +54,23 @@ the ε-closure of a set of states: 状态机中所有状态的ε-closure的并�
 2. 使用变量表示状态，switch-case语句表示状态转换（状态显义于变量）
 3. 在用变量表示状态的基础上，将状态转换函数转换为表格形式（状态转移表）
 ## scanner 开发流程
-1. 
+1. 添加特殊符号（+-*/()）的DFA
+2. 添加数字的DFA
+3. 添加注释、空白符和赋值的DFA
+4. 其他一般会先识别为标识符，然后再到查看是否在关键字列表中（查找算法很关键，hash通常使用minimal perfect hash function）；另一种方法是提前放在符号表中，这样就只需要维护一张表。lex就没法做到这点，一般这种方法在真实的编译器中使用的更多，因为关键字的识别会导致lex的代码剧增。
+## 使用lex
+### lex 输入文件
+``` lex
+{definitions}
+%%
+{rules}
+%%
+{auxilizry routines/ user routines}
+```
+#### definitions
+1. %{任何需要被插入的外部C函数%}
+2. 正则表达式定义
+#### rules
+包括正则匹配命中后操作的C代码
+#### auxilizry routines / user routines
+rules部分中调用的函数实现和其他未定义的函数实现
