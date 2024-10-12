@@ -16,6 +16,15 @@ attributes:
 1. 关键字优先原则：都满足关键字和识别符的条件时（例如：C语言中的if），优先认定为关键字
 2. 最长字串原则：可以是一个或多个token时，优先认定一个token
 ## regular expression and Finite Automaton 有限自动机
+Finite State Machine 有限状态机的形式化描述如下
+```
+有穷自动机是一个5元组(S, Σ, f, S0, F)
+S：一个有穷集合，称为状态集
+Σ：一个有穷集合，称为字母表
+f：f:SxΣ->S是转移函数
+S0：S的一个子集，称为起始状态（部分定义中指定起始状态唯一）
+F：S的一个子集，称为终止状态（接受状态）
+```
 Deteministic Finite Automaton DFA 确定有限自动机可以描述一条正则表达式来识别一种类型的token
 Scanner需要将多个DFA合并以扫描识别不同种类的tokens，如果不同DFA存在相同的状态转移函数，那么就可以将其合并。
 为了能供合并，需要引入空字符串转换（ε转换）和选择（多条转换）（即一个状态转移函数的结果是一个集合），这就是nondeteministic finite automaton(NFA)
