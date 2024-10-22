@@ -39,7 +39,7 @@ parse tree存在一种更为简明的表示方式，抽象语法树（abstract s
 - parse tree：表示concrete syntax
 - syntax tree：表示abstract syntax，所以信息更少
 ## 二义性语法（ambiguity）
-如果一个上下文无关语言CFL的所有CFG都是歧义的，则语言CFL具有固有二义性，使得推导过程存在多种方式，最终生成的不同的parse tree和AST，可能导致句子具有不同的含义，也会在后续介绍的解析算法中失败。而语言L只要存在有一个CFG文法是无歧义的，那么L就是无二义性的。可能具有二义性的文法可以通过某些修改进一步消除二义性，但同事保证其生成同样的CFL。目前没有一个算法来判断一个CFG是否存在二义性（也即没有一个快速算法可以将一个二义性算法转换为非二义性文法），CFG是否是二义性的是不可判定问题。另一方面对于无二义性文法其最左推导和最右推导都是唯一的。
+如果一个上下文无关语言CFL的所有CFG都是歧义的，则语言CFL具有固有二义性，使得推导过程存在多种方式，最终生成的不同的parse tree和AST，可能导致句子具有不同的含义，也会在后续介绍的解析算法中失败。而语言L只要存在有一个CFG文法是无歧义的，那么L就是无二义性的。可能具有二义性的文法可以通过某些修改进一步消除二义性，但同时保证其生成同样的CFL。目前没有一个算法来判断一个CFG是否存在二义性（也即没有一个快速算法可以将一个二义性算法转换为非二义性文法），CFG是否是二义性的是不可判定问题。另一方面对于无二义性文法其最左推导和最右推导都是唯一的。
 一般来说二义性的原因主要有：
 1. 没有考虑运算符的优先级
 2. 没有考虑运算符的结合性（左结合，右结合，不结合），一系列同样的运算符既可以从左到右结合，也可以从右到左结合。对于有结合律的运算符也必须选择一种结合性来保证语法树的唯一性。
@@ -102,5 +102,236 @@ S0：S的一个子集，称为起始状态（部分定义中指定起始状态�
 F：S的一个子集，称为终止状态（接受状态）
 ```
 ### CFG->PDA
+对于表示CFG G的PDA P
+1. P有个初始状态S，把栈底标记符$和开始符号推进栈中
+2. 重复下列步骤
+    a. 如果栈顶是非终结符A，弹出并选择一个关于A的推导式，把A替换为推导式右边的串
+    b. 如果栈顶是终结符a，弹出并读取下一个输入符号，并且与a比较，匹配则继续，不匹配则拒绝这个非确定性分支，回溯到上一个可替换的非终结符推导式，并替换
+    c. 如果栈顶是栈底标记符$，且输入已结束，进入接受状态。
+### 自顶向下分析
+从构造PDA的方式很自然的可以整理出一种算法：
+从CFG的开始符号出发，尝试推导出某个串t。比较目标串s，判断串s和推导出的串t是否相同，相同则接受，否则回溯。
+```C
+token_t[] tokens;
+int token_index = 0; // 当前读到的token的索引位置，初始化为0，即从第一个token开始读取。
+stack_t stack;
+stack.push(START_SYMBOL);
+while (stack.empty() != true)
+{
+    if (is_terminal(stack.top()) == true)
+    {
+        if (termainal_cmp(stack.top(), tokens[token_index]) == true)
+        {
+            stack.pop();
+        }
+        else backtrack(); // 回溯替换推导式
+    }
+    else
+    {
+        non_termainal_symbol nontermainal = stack.pop();
+        stack.push(next_production_right(nontermainal));
+    }
+}
+```
+算法中使用了回溯，分析效率很低。
+为了避免回溯，引入了前看符号
+### 递归下降分析算法
+也称为预测分析算法，思想非常简单
+1. 对每一个非终结符构造一个分析函数
+2. 用前看符号指导推导式规则的选择
+```C
+typedef void (*non_terminal_parser) (string lookahead_token);
 
+void non_terminal_parser_for_exp(string lookahead_token)
+{
+    switch(lookahead_token)
+    {
+        case NON_TERMINAL_TERM: non_terminal_parser_for_term();
+        case TERMINAL_TOKEN[0]: 
+        default: error("...");
+    }
+}
 
+void non_terminal_parser_for_term(string lookahead_token);
+void non_terminal_parser_for_factor(string lookahead_token);
+
+```
+#### 例子
+```C
+void parse_factor(char lookahead)
+{
+    if (is_number(lookahead))
+    {
+        parse_num(get_next_token());
+    }
+    else if (lookahead == '(')
+    {
+        parse_exp(get_next_token());
+        if (get_next_token() != ')')
+            {
+                error();
+            }
+    }
+    return;
+}
+
+void parse_exp(char lookahead)
+{
+    parse_term(get_next_token());
+    lookahead = get_next_token();
+    while(is_op(lookahead))
+    {
+        parse_term(get_next_token());
+        lookahead = get_next_token();
+    }
+    return;
+}
+```
+### LL(1)分析算法
+从**左（Left）向右**读入程序，使用**最左（Left**）推导，采用**一个（1）**前看符号的分析算法称为LL(1)分析算法。
+思想是表驱动的分析算法，语法经过语法分析器（自动生成器）生成分析表
+缺点是文法类型受限，往往需要文法改写
+分析过程可能需要不断增长的栈空间
+
+LL(1)分析算法
+```C
+token_t[] tokens;
+int token_index = 0; // 当前读到的token的索引位置，初始化为0，即从第一个token开始读取。
+stack_t stack;
+stack.push(START_SYMBOL);
+while (stack.empty() != true)
+{
+    if (is_terminal(stack.top()) == true)
+    {
+        if (terminal_cmp(stack.top(), tokens[token_index]) == true)
+        {
+            stack.pop();
+        }
+        else error();
+    }
+    else
+    {
+        non_termainal_symbol nontermainal = stack.pop();
+        stack.push(currect_production_right(nontermainal, token[token_index+1]));
+    }
+}
+```
+语法分析器（自动生成器）算法
+对于非终结符N，计算N的First集
+FIRST(N) = {a|a是所有可能的从非终结符N开始推导得出的句子的开头终结符}
+         = {a|a是所有可能的从非终结符N直接推导得出的句子的开头终结符} U {a| a = FIRST(M), M为非终结符N直接推导出的句子的最左非终结符}
+对于CFG中存在可以推导出ε的非终结符（称可以推导出ε的非终结符集合为NULLABLE），需要考虑FOLLOW集
+
+通过FIRST(N)反向可以推出分析表
+
+但是
+存在一些情况某些非终结符可以推导出空字符串（ε），我们将这类非终极符归类为NULLABLE集合，他们会导致计算FIRST集的算法从一般的情况变得相对复杂。
+在这种复杂情况下为了得出FIRST集，需要进一步考虑非终结符的FOLLOW集
+NULLABLE = {N| N可以直接推导出ε} U {M| M->O1...On,O1...On是n个非终结符，且都属于NULLABLE集合}
+```C
+// 计算FIRST集
+gen_first_set()
+{
+    foreach_nonterminal(nonterminal N)
+    {
+        // 初始化FIRST(N)为空集
+        FIRST(N) = {};
+    }
+
+    while(at least one FIRST set is changed)
+    {
+        foreach (production p: N->x1 ... xn) // 遍历CFG的所有产生式
+        {
+            foreach(xi from x1 to xn)
+            {
+                if (xi == a...) // 如果xi是终结符a
+                {
+                    FIRST(N) &= {a};
+                    break; // 不在继续遍历这个产生式右侧的其他符号
+                }
+                if (xi == M...) // 如果xi是非终结符M
+                {
+                    FIRST(N) &= FIRST(M)
+                    if (M not in NULLABLE)
+                    {
+                        break; // 不在继续遍历这个产生式右侧的其他符号
+                    }
+                }
+            }
+        }
+    }
+    return set<FIRST>;
+}
+
+// 计算FOLLOW集
+gen_follow_set()
+{
+    foreach_nonterminal(nonterminal N)
+    {
+        // 初始化FOLLOW(N)为空集
+        FOLLOW(N) = {};
+    }
+
+    while(at least one FOLLOW set is changed)
+    {
+        foreach (production p: N->x1 ... xn) // 遍历CFG的所有产生式
+        {
+            FOLLOW temp = FOLLOW(N); 
+            foreach(xi from xn to x1) //注意是逆序!
+            {
+                if (xi == a...) // 如果xi是终结符a
+                {
+                    temp = {a};
+                }
+                if (xi == M...) // 如果xi是非终结符M
+                {
+                    FOLLOW(M) &= temp;  // 之前逆序遍历的结果，都是非终结符M的FOLLOW集
+                    if (M is not in NULLABLE)
+                        temp = FIRST(M);
+                    else temp &= FIRST(M);
+                }
+            }
+        }
+    }
+    return set<FOLLOW>;
+}
+
+// 计算每个产生式的FIRST集
+gen_production_first_set()
+{
+    foreach_production(production p)
+    {
+        // 初始化FIRST_S(p)为空集
+        FIRST_S(p) = {};
+    }
+    foreach (production p: N->x1 ... xn)
+    {
+        foreach(xi from x1 to xn)
+        {
+            if (xi == a...) // 如果xi是终结符a
+            {
+                FIRST_S(p) &= {a};
+                break;
+            }
+            if (xi == M...) // 如果xi是非终结符M
+            {
+                FIRST_S(p) &= FIRST(M);
+                if (M is not NULLABLE)
+                {
+                    break;
+                }
+                FIRST_S(p) &= FOLLOW(N);
+            }
+        }
+    }
+}
+```
+### LL(1)文法与冲突
+CFG对应得出的分析表中每个表项只有一个元素，则称该文法为LL(1)文法。若有任一表项元素大于1，则称为分析表冲突。遇到分析表冲突的话 算法实现会回溯。可以通过一些手段去除分析表冲突。
+#### 消除左递归
+任何左递归的文法都不是LL(1)文法，因为左递归会导致前看符号无法指导推导式规则的选择。
+#### 提取左公因子
+
+## 自底向上分析算法
+### LR(0)分析算法
+也称为移进(shift)-归约(recursive)算法
