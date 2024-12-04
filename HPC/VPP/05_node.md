@@ -1,29 +1,44 @@
 # VPP的图节点 node
+vpp框架中，一个数据包的处理的逻辑由call graph定义，call graph由node组成，node是vpp框架（src/vlib/main.c:vlib_main_or_worker_loop函数）中的最小执行单元。
 ## node类型
-src/vlib/node.h
-```
+src/vlib/node.h定义了node的分类
+``` C
 typedef enum
 {
   /* An internal node on the call graph (could be output). */
-  VLIB_NODE_TYPE_INTERNAL, // 真正处理数据包的业务node
+  VLIB_NODE_TYPE_INTERNAL,
 
   /* Nodes which input data into the processing graph.
      Input nodes are called for each iteration of main loop. */
-  VLIB_NODE_TYPE_INPUT, // 收包逻辑node，如：dpdk，pcap等
+  VLIB_NODE_TYPE_INPUT,
 
   /* Nodes to be called before all input nodes.
      Used, for example, to clean out driver TX rings before
      processing input. */
-  VLIB_NODE_TYPE_PRE_INPUT, // 目前只有一个epoll node，对socket相关逻辑提供服务，主要使用于控制业务
+  VLIB_NODE_TYPE_PRE_INPUT,
 
   /* "Process" nodes which can be suspended and later resumed. */
-  VLIB_NODE_TYPE_PROCESS, // 该类型node可以被挂起也可以被恢复，有独立的分配在heap上的运行时栈。类似于在一个线程中实现了多任务调度机制。主要用来修改vpp node内部参数
+  VLIB_NODE_TYPE_PROCESS,
 
   VLIB_N_NODE_TYPE,
 } vlib_node_type_t;
-```
+``` 
+### 1. VLIB_NODE_TYPE_INTERNAL
+通常运行于worker线程，负责处理数据包的业务node，当处理过程中有数据包在处理时被指定流向某node时才由框架调度（dispatch_pending_node函数调用）某node（.function）对数据包（frame）进行处理。
+### 2. VLIB_NODE_TYPE_INPUT
+大部分运行于worker线程上，但main线程上也会有。在执行顺序上先于INTERNAL node节点执行，所以有以下功能
+1. 负责收取数据包
+2. 负责处理INTERNAL node执行前的准备工作
+INPUT node 以及 后面的PRE_INPUT node存在以下三种状态（定义于src/vlib/node.h）
+1. VLIB_NODE_STATE_POLLING：默认状态，每次main loop都会被框架调度（dispatch_pending_node函数调用）其node（.function），且在三种不同的INPUT node中最先执行，此类型INPUT node使用一个叫`input_main_loops_per_call`的计数器，每次main_loop循环这个计数器会递减，直到此项为0后，才真正执行其函数。这样使得可以控制main_lopp循环时某些INPUT node(此计数器值较小者)可以比其他input node更常调用
+2. VLIB_NODE_STATE_INTERRUPT：当给此类node发送信号（src/vlib/node_funcs.h:vlib_node_set_interrupt_pending函数）时，才会被框架调度，在三种不同的INPUT node中第二顺位被执行
+3. VLIB_NODE_STATE_DISABLED：此类node默认不运行，需要通过（src/vlib/node_funcs.h:vlib_ndoe_set_state函数）调整node状态转变为上述两种状态之一后才可能被调度，一般在等待某个事件或准备工作完成后再调用vlib_ndoe_set_state函数使其运行，比如配置读取完成后。
+### 3. VLIB_NODE_TYPE_PRE_INPUT
+大部分运行于worker线程上，但main线程上也会有。在执行顺序上先于INPUT node节点执行，类型上与INPUT node相似，比较少使用，常用于实现控制平面的功能，比如对socket相关逻辑提供服务
+### 4. VLIB_NODE_TYPE_PROCESS
+运行在main线程上的协程，该类型node可以被挂起、等待事件执行(timer相关)、取消挂起恢复···，有独立的分配在heap上的运行时栈。类似于在一个线程中实现了多任务调度机制。主要用来修改vpp node内部参数
 ## node注册
-```
+```C
 VLIB_REGISTER_NODE (ip4_input_node) = { // VLIB_REGISTER_NODE宏会生成带__attribute__((__constructor__))的函数代码，__attribute__((__constructor__))会使得函数在main函数前被调用
   .name = "ip4-input", // name字段是vpp内串联node使用的唯一标识，所以必须唯一
   .vector_size = sizeof (u32),
@@ -47,34 +62,6 @@ VLIB_REGISTER_NODE (ip4_input_node) = { // VLIB_REGISTER_NODE宏会生成带__at
   .format_trace = format_ip4_input_trace, // show trace 显示路径的信息(一般是数据包到这个node时要输出的信息)
 };
 ```
-### 1. VLIB_NODE_TYPE_INTERNAL 
-最常见也是最重要的节点类型，此类节点是真正处理数据包业务的node
-### 2. VLIB_NODE_TYPE_INPUT
-此类节点用于包的起点(input)，其内部分为以下几类：
-src/vlib/node.h
-```
-#define foreach_vlib_node_state					\
-  /* Input node is called each iteration of main loop.		\
-     This is the default (zero). */				\
-  _ (POLLING)							\
-  /* Input node is called when device signals an interrupt. (我猜测是用于packet-generator) */	\
-  _ (INTERRUPT)							\
-  /* Input node is never called. */				\
-  _ (DISABLED)
-
-typedef enum
-{
-#define _(f) VLIB_NODE_STATE_##f,
-  foreach_vlib_node_state
-#undef _
-    VLIB_N_NODE_STATE,
-} vlib_node_state_t;
-```
-另外input node 类型的数据结构中有一个叫`input_main_loop_per_call`的计数器，每次main_loop循环这个计数器会递减，直到此项为0后，才真正执行其函数。这样使得可以控制main_lopp循环时某些input node(此计数器值较小者)可以比其他input node更常调用
-### 3. VLIB_NODE_TYPE_PRE_INPUT
-此类节点是在input节点之前的节点，常用于实现控制平面的功能
-### 4. VLIB_NODE_TYPE_PROCESS
-类似线程的函数(类似中断处理程序)，可以被挂起、等待事件执行(timer相关)、取消挂起恢复···
 ## node初始化
 1. 在vlib_main(src/vlib/main.c:2138)函数中调用 vlib_register_all_static_nodes(src/vlib/node.c:505)函数遍历([VLIB_REGISTER_NODE](#main函数之前)注册的)vlib_main_t->node_main.node_registrations调用register_node(src/vlib/node.c:294)来创建(只是创建并基本的初始化不连接)所有的node。所有注册的node都会保存到vlib_main_t->node_main->nodes中，nodes则存储在一个vec_header_t中(这样相比链表更容易找到，但每次添加时要重新申请内存)
 2. 在register_node(src/vlib/node.c:294)函数中不仅会将node添加到vlib_main_t->node_main->nodes中，还会根据node的类型区分添加到vlib_main_t->node_main另外两个数据结构(也都是vec_header_t的方式存储)中：

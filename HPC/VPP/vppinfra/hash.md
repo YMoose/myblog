@@ -5,7 +5,7 @@
 - src/vppinfra/bihash_template.h(主数据结构和方法)
 ## 简介
 VPP 底层库提供了两种hash实现，一种是普通hash，基于Vector，不具备线程安全，适用于静态查询场景。
-另外一种是Bihash(Bounded-index extensible hashing),key大小规定，但线程安全。Bihash具有依据当前哈希冲突事件，动态扩大哈希表容量的能力，节省存储空间的同时，能够降低冲突的概率。
+另外一种是Bihash(Bounded-index extensible hashing),key大小固定，但线程安全。Bihash具有依据当前哈希冲突事件，动态扩大哈希表容量的能力，节省存储空间的同时，能够降低冲突的概率。
 
 数据平面在处理数据包分类，session查询经常要使用Bihash。普通hash用于控制平面进行字符串匹配等。
 通常Bihash使用是自己的heap上下文进行内存管理，也可以直接使用mmap来进行内存分配。
