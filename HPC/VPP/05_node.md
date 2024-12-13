@@ -32,7 +32,7 @@ typedef enum
 INPUT node 以及 后面的PRE_INPUT node存在以下三种状态（定义于src/vlib/node.h）
 1. VLIB_NODE_STATE_POLLING：默认状态，每次main loop都会被框架调度（dispatch_pending_node函数调用）其node（.function），且在三种不同的INPUT node中最先执行，此类型INPUT node使用一个叫`input_main_loops_per_call`的计数器，每次main_loop循环这个计数器会递减，直到此项为0后，才真正执行其函数。这样使得可以控制main_lopp循环时某些INPUT node(此计数器值较小者)可以比其他input node更常调用
 2. VLIB_NODE_STATE_INTERRUPT：当给此类node发送信号（src/vlib/node_funcs.h:vlib_node_set_interrupt_pending函数）时，才会被框架调度，在三种不同的INPUT node中第二顺位被执行
-3. VLIB_NODE_STATE_DISABLED：此类node默认不运行，需要通过（src/vlib/node_funcs.h:vlib_ndoe_set_state函数）调整node状态转变为上述两种状态之一后才可能被调度，一般在等待某个事件或准备工作完成后再调用vlib_ndoe_set_state函数使其运行，比如配置读取完成后。
+3. VLIB_NODE_STATE_DISABLED：此类node默认不运行，需要通过（src/vlib/node_funcs.h:vlib_node_set_state函数）调整node状态转变为上述两种状态之一后才可能被调度，一般在等待某个事件或准备工作完成后再调用vlib_node_set_state函数使其运行，比如配置读取完成后。
 ### 3. VLIB_NODE_TYPE_PRE_INPUT
 大部分运行于worker线程上，但main线程上也会有。在执行顺序上先于INPUT node节点执行，类型上与INPUT node相似，比较少使用，常用于实现控制平面的功能，比如对socket相关逻辑提供服务
 ### 4. VLIB_NODE_TYPE_PROCESS
