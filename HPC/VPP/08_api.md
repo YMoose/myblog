@@ -75,9 +75,51 @@ vl_api_xxx_t_handler(vl_api_xxx_t *mp)
     //todo
 }
 ```
-同时需要在使用前，通过xxx.api.c:setup_message_id_table()函数对api进行注册。
+在使用前，需要在vpp框架中通过调用xxx.api.c:setup_message_id_table()函数对api进行注册。
 ### 外部程序调用api
+```C
+#include <vapi/vapi.h>
+#include "vapi/xxx.api.vapi.h"
 
+vapi_error_e
+xxx_cb (struct vapi_ctx_s *ctx, void *callback_ctx, vapi_error_e rv, bool is_last, vapi_payload_xxx_reply *reply)
+{
+    // handle reply
+    return VAPI_OK;
+}
+
+int main (int argc, chat *argv[])
+{
+    vapi_ctx_t ctx;
+    vapi_error_r rv = vapi_ctx_alloc (&ctx);
+
+    if (rv != VAPI_OK)
+        return rv;
+    
+    /* 通过/run/vpp/api.sock 与vpp进行socket连接 */
+    rv = vapi_connect (ctx, "test", NULL, 64, 32, VAPI_MODE_BLOCKING, true);
+
+    if (rv != VAPI_OK)
+        return rv;
+    
+    /* 每次消息传递需要申请消息的内存，vpp内部接受消息后会释放，不用在外部程序中手动释放，下次再次发送消息需要重新申请 */
+    vpai_msg_xxx* sv = vapi_alloc_xxx(ctx);
+
+    // fill sv
+    
+    /* 发送消息 */
+    rv = vapi_xxx (ctx, sv, xxx_cb, NULL);
+    if (rv != VAPI_OK)
+        return rv;
+
+    rv = vapi_disconnect (ctx);
+    if (rv != VAPI_OK)
+        return rv;
+    
+    vapi_ctx_free (ctx);
+    return 0;
+}
+```
 ## 参考
 1. vpp api官方文档
 2. [vpp中plugin的api编程（1） - 简单使用](https://blog.51cto.com/zhangchixiang/2128565)
