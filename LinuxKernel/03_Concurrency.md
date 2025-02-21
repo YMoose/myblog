@@ -32,7 +32,7 @@ int lock()
 - 另一方面，指令重排会使得编译后的机器指令并不完全按照程序编写人员编写的代码逻辑顺序执行，这部分和指令优化相似不过是层级不同（一个是多条指令的顺序，一个是多条指令中的micro指令的顺寻）。
 #### 1.1.1. 编译优化导致的并发问题解决方法
 主要是打破内存独占的假设，告诉编译器内存可能在指令之间被修改，使得编译器对依赖这部分内存的指令不优化
-- 方法1：插入 “不可优化” 代码
+插入 “不可优化” 提示代码（相比fence指令代价小）
 ``` C
 // “Clobbers memory”
 asm volatile ("" ::: "memory");
@@ -51,8 +51,8 @@ bool flag[2];
 
 void lock(int thread_index)
 {
-  flag[thread_index] = true;
-  turn = 1 - thread_index;
+  flag[thread_index] = true;  // 举起自己颜色的旗子
+  turn = 1 - thread_index;    // 将别人颜色的旗子贴到门上
   while (flag[1-thread_index] && turn == 1-thread_index);
 }
 
