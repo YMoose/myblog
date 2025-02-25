@@ -22,19 +22,39 @@
   - Non-Inclusive shared L3 Cache: 非包含式的缓存（即L2 cache中的缓存行不一定存在于L3中，可以将L3 cache 看成是L2 cache的[Victim cache](https://en.wikipedia.org/wiki/Victim_cache)）。skylake中的L3实现，因为L3缓存的这种实现，将原有的L3 cache的一部分转移到了core中的L2 cache。
 - SF(Snoop Filter): 
 - Intel UPI(Ultra Path Interconnect): 保证跨socket的数据一致性的构件(替换了上一代CPU中的Intel QPI)。Intel UPI移除了home agent需要的预申请的资源，这样使得home agent可以被分布式的放在core上。分布式HA逻辑上可以看作是一个管理地址有些重复的Intel UPI的agent。
+- PCIe：实际上是PCIe控制器（PCI Host bridge或PCIe Root Complex），将CPU处理单元、PCIe总线、内存控制器连接起来
+- DMI：Direct Media Interface（直接媒体接口）是Intel开发用于连接主板PCH的，其实现基于PCIe
 
-## CPU外部架构
-![North Bridge](pics/Motherboard_diagram.svg)
-在x86 PC诞生的初阶段，并没有专门的芯片组概念，CPU与内存、I/O系统的通讯是由一个所谓门列控制芯片，它也就是主板的核心部件，也被称为“Core Logic（核心逻辑）”。进入386时代后，双芯片结构的芯片组正式确立，按照它们在主板的不同位置，通常把两个芯片分别称作“北桥（North Bridge）”和“南桥（South Bridge）”。
-CPU与北桥由FSB（Front-side bus）相连，FSB相对较短提供与CPU的高速通信
-南桥与北桥相连，南桥芯片组负责相对慢速的设备连接，这些设备与CPU通过 I/O Bus (IOB)相连
-FSB和IOB的地址总线、数据总线和控制总线都连接到了CPU的引脚上，只不过具体的实现不同
-原来北桥上的内存控制器、PCIE root port(IIO root port)等高速设备集成到了cpu内部，原本位于北桥上的集成进CPU的功能模块在intel被称为cpu uncore modules。
+## 总线架构的发展
+总线是一组信号线的集合
+在x86 PC诞生的初阶段，并没有专门的芯片组概念，CPU与内存、I/O系统的通讯是由一个所谓门列控制芯片，它也就是主板的核心部件，也被称为“Core Logic（核心逻辑）”，第一代ISA总线是8位的，每次只能读/写一个字节。第二代ISA总线扩充成了16位，为单总线架构。后来扩充为32位的EISA总线（还来不及推广就被PCI取代）
+![单总线架构](pics/single-bus_arch.png)
+随着技术发展和应用普及，市场需要支持热插拔、高带宽、总线共享、设置简单的新总线架构。此时，PCI标准（1992年）脱颖而出成为通用的总线标准。
+进入386时代后，双芯片结构的芯片组正式确立，按照它们在主板的不同位置，通常把两个芯片分别称作“北桥（North Bridge/Host Bridge）”和“南桥（South Bridge）”，桥负责匹配不同的速度，形成了双总线架构。
+![双总线架构](pics/double-bus_arch.png)
+CPU与北桥芯片由FSB（Front-side bus）相连，FSB相对较短（物理意义上）提供与CPU的高速通信
+北桥芯片与内存控制器、显卡和pci总线由系统总线相连。
+北桥芯片与南桥芯片相连，南桥芯片组负责相对慢速的设备连接，这些设备与CPU通过 I/O Bus (IOB)相连
+为了减少总线间竞争并匹配不同设备间（CPU-内存、内存-设备等）的通信速度差异，进一步优化了总线架构，形成了多总线架构。CPU与pci总线通过HOST-PCI桥（host bridge）相连
+![后期南北桥架构](pics/Motherboard_diagram.svg)
+随着CPU主频提高，后续为进一步匹配CPU处理性能，原来北桥芯片上连接的内存控制器、PCIE root port(IIO root port)等高速设备集成到了cpu内部（2009年），原本位于北桥上的集成进CPU的功能模块在intel被称为cpu uncore modules。
 ![intel uncore 模块](pics/intel_uncore_module.png)
-另一方面，慢速设备如sata磁盘接口，usb接口，主板集成网卡等io设备直接连接主板的PCH(Platform Controller Hub)芯片组再连接CPU
+另一方面，慢速设备如sata磁盘接口，usb接口，主板集成网卡等io设备直接连接主板的PCH(Platform Controller Hub)芯片组再连接CPU。
+![新架构](pics/i7-6700_Block.webp)
+### pci介绍
+在PCI总线之前，系统仅有一个CPU作为总线中的主设备，可以启动跨总线操作。从设备则需要向CPU申请才可以。PCI总线是一种点对点的总线模型。为了设备间传输数据的同时可以释放CPU，需要允许总线中可以有多个主设备，PCI总线配置了一个仲裁器，仲裁器会从候选主设备（实现pci协议的设备）中选择其一作为主设备，以避免冲突。
+内存控制器通常又与HOST-PCI桥集成在一个芯片上（后续也集成进了CPU中），可以将内存也看作PCI总线上的一个设备，不过其永远是从设备
+PCI架构后续进一步发展为PCIe总线标准（2004年），
+![pcie arch](pics/pcie-example-topology.png)
+### 外部总线
+usb
+
 ## 参考
 https://www.intel.com/content/www/us/en/developer/articles/technical/xeon-processor-scalable-family-technical-overview.html
 https://en.wikipedia.org/wiki/Tick%E2%80%93tock_model
 https://community.intel.com/t5/Software-Tuning-Performance/About-Caching-Home-agent/m-p/1156700
 https://www.starduster.me/2018/05/18/talk-about-evolution-from-broadwell-to-skylake/
 https://answers.microsoft.com/en-us/windows/forum/all/device-io/8ee64904-e136-4484-920c-fc4a14b43c45
+linux内核源代码情景分析，设备驱动
+https://blog.csdn.net/weixin_44395686/article/details/105240630
+http://cniti.com/index.php/article/index/id/3008/viewall/1
