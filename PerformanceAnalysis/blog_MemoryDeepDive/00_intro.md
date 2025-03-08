@@ -31,6 +31,12 @@ DDR4内存的引脚布局与DDR3不同
 ## NUMA and data locality
 CPU的处理性能和内存的访问性能间的差距，随着单核CPU技术的发展一直在变大。到2004年单核CPU的发展遇上了功耗墙导致CPU向多核发展，但内存和CPU的差距仍然存在，进一步来说，多核CPU对内存访问提出了更大带宽的要求。
 ### Parallel Memory Architect
+### Memory Interleaving
+![Memory Interleaving](pics/Memory_interleaving.png)
+内存channel增加了 但 访问是顺序访问 还是访问了同一块内存
+所以有了memory （channel）interleaving 尽可能增加带宽的同时减小延时（看具体配置） 
+让顺序访问的物理内存是不同通道上的内存条提供的
+interleaving的粒度可能是4k 8k 2m
 ## terms
 DDR(Double Data Rate): 是按照内部技术对内存的分类，全名是DDR SDRAM(Synchronous Dynamic Random Access Memory，同步动态随机存储器)，含义是在时钟的电压上升沿和下降沿都会发生数据传输。所以DDR内存的MT/s (mega transfers per second)是IO bus频率的两倍。
 channel: CPU中的内存通道, 内存之所以有多通道是因为cpu集成了多个内存控制器。通常DDR\DDR2\DDR3\DDR4接口都是64比特的channel width
