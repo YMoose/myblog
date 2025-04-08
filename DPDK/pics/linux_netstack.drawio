@@ -1,0 +1,118 @@
+<mxfile host="app.diagrams.net" modified="2025-04-08T07:14:30.584Z" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/134.0.0.0 Safari/537.36" etag="V5W7uq8l0542m77N0C4J" version="24.6.4" type="device">
+  <diagram name="第 1 页" id="3513fozU0LsCDIFv9rvI">
+    <mxGraphModel dx="1434" dy="746" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="1654" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="nFaudy3HBiFGn33R6FIx-1" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="410" y="72" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-2" value="User Application" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="430" y="82" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-3" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="410" y="172" width="200" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-4" value="System Call Interface" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="430" y="192" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-5" value="Protocol Agnostic Interface" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="430" y="252" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-6" value="Network Protocols" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="430" y="312" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-7" value="Device Agnostic Interface" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="430" y="372" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-13" value="Device Agnostic Interface" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="430" y="432" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-14" value="Physical Device Hardware" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="410" y="532" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-15" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="370" y="152" as="sourcePoint" />
+            <mxPoint x="650" y="152" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-16" value="" style="endArrow=none;dashed=1;html=1;rounded=0;" edge="1" parent="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="370" y="512" as="sourcePoint" />
+            <mxPoint x="650" y="512" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-19" value="Application Layer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="690" y="84" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-20" value="Transport Layer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="691" y="252" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-21" value="Internet Layer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="691" y="312" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-22" value="Network Access(Link) Layer" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="691" y="372" width="200" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-23" value="User Space" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="610" y="112" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-24" value="HTTP / HTTPS&amp;nbsp;&lt;div&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;FTP / DNS / ...&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="911" y="84" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-25" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;rounded=0;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="nFaudy3HBiFGn33R6FIx-6" target="nFaudy3HBiFGn33R6FIx-20">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="680" y="352" as="sourcePoint" />
+            <mxPoint x="730" y="302" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-26" value="" style="endArrow=none;dashed=1;html=1;dashPattern=1 3;strokeWidth=2;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="nFaudy3HBiFGn33R6FIx-6" target="nFaudy3HBiFGn33R6FIx-22">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="680" y="352" as="sourcePoint" />
+            <mxPoint x="730" y="302" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-27" value="Kernel Space" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="610" y="162" width="60" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-29" value="调用 socket (sys/socket.h&lt;span style=&quot;background-color: initial;&quot;&gt;)&lt;/span&gt;" style="text;html=1;align=right;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="230" y="102" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-31" value="TCP / UDP" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="911" y="252" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-32" value="IP / ICMP / ..." style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="911" y="312" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-33" value="Ethernet / ..." style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+          <mxGeometry x="911" y="372" width="100" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-34" value="&lt;b&gt;Linux Networking Stack&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="430" y="30" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-35" value="&lt;b&gt;TCP / IP Model&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="730" y="32" width="110" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-36" value="Browser / Mail Server / ..." style="text;html=1;align=right;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="230" y="72" width="160" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-37" value="&lt;div&gt;dev_queue_xmit函数将sk_buff从协议层发送到设备&lt;/div&gt;&lt;div style=&quot;&quot;&gt;sk_buff 通过 net_device* dev 标识了发送数据包的设备&lt;/div&gt;&lt;div style=&quot;&quot;&gt;dev_queue_xmit会调用设备驱动注册时实现的net_device_ops&lt;/div&gt;&lt;div style=&quot;&quot;&gt;对数据包进行操作&lt;/div&gt;" style="text;html=1;align=right;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="357" width="350" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-38" value="SYSCALL_DEFINE3(socket, int, family, int, type, int, protocol)&lt;div&gt;调用sock_create&lt;/div&gt;&lt;div&gt;调用pf-&amp;gt;create&lt;/div&gt;&lt;div&gt;（struct net_proto_family inet_family_ops.create)&amp;nbsp;&lt;/div&gt;&lt;div&gt;以inet族为例，inet_create分配并初始化struct sock&amp;nbsp;&lt;/div&gt;&lt;div&gt;会&lt;span style=&quot;background-color: initial;&quot;&gt;遍历inetsw_array获取所需proto&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=right;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="40" y="157" width="350" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-39" value="&lt;div&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;获得的proto记录在&lt;/span&gt;&lt;/div&gt;&lt;div&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;struct sock&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;-&amp;gt; struct proto* sk_prot_creator&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=right;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="140" y="252" width="250" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-41" value="&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;struct proto -&amp;gt; sendmsg通过alloc_skb创建sk_buff链&lt;/span&gt;&lt;/div&gt;&lt;div style=&quot;&quot;&gt;&lt;span style=&quot;background-color: initial;&quot;&gt;并向下层协议传递封装&lt;/span&gt;&lt;/div&gt;" style="text;html=1;align=right;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="90" y="307" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="nFaudy3HBiFGn33R6FIx-43" value="&lt;div&gt;设备驱动实现struct net_device_ops&lt;/div&gt;&lt;div style=&quot;text-align: right;&quot;&gt;并通过register_netdev进行注册&lt;/div&gt;" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="170" y="432" width="210" height="40" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
