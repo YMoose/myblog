@@ -1,18 +1,23 @@
 # vector
-头文件目录 /src/vppinfra/vec.h
+头文件目录 
+src/vppinfra/vec.h
+src/vppinfra/vec_bootstrap.h
 
 ## 简介
-vector是可以动态改变大小的数组，它包含一个user header，许多CLIB 数据结构（如 hash heap pool）都是基于vector，它们的user header有所不同。
+vector是可以动态改变大小的数组，它包含一个user header，许多CLIB 数据结构（如 hash heap pool）都是基于vector，它们的user header各有所不同。
 
 内存布局
 ~~~~~~~~
-                    user header (aligned to uword boundary)
-                    vector length: number of elements
-   user's pointer-> vector element #0
-                    vector element #1
-                    ...
+                user header (start of memory allocation)
+                padding
+                heap pointer (optional, only if default_heap == 0)
+                vector header: number of elements, header size
+user's pointer->vector element #0
+                vector element #1
+                ...
 ~~~~~~~~
 
+user header需在vec_attr_t.hdr_sz中指定大小
 
 - 用户指针指向了第一个元素 #0，vec不需要特地初始化，null指针是有效的vector， 表示长度为0的vector，可以直接使用vec_add这些宏直接添加元素，在添加时宏会自动完成初始化过程
 
@@ -26,16 +31,9 @@ vector是可以动态改变大小的数组，它包含一个user header，许多
 
 ## 数据结构及方法
 vecotr的数据结构如下：
-```
-typedef struct
-{
-  u32 len; /**数组长度，注意不是分配的内存大小**/
-  u8 numa_id; /**< NUMA id */
-  u8 vpad[3]; /**< pad to 8 bytes */
-  u8 vector_data[0];  /**< Vector data . */
-} vec_header_t;
-```
 
+
+vector数据结构接口如下：
 | 序号 | 宏或者函数 | 说明 | 备注 |
 | - |----------------|------------------|---------------------|
 | 1 | vec_validate(V, I) | 确保V的长度足够访问I,如果不够resize V。用于预分配Vecotr大小| 无 |
@@ -73,3 +71,23 @@ typedef struct
 _h 表示 user header 大小
 _a 表示元素对齐 大小
 _n 表示numa id
+
+## 实现
+### 创建
+vector在创建的时候实际上调用的接口是
+``` C
+typedef struct
+{
+  void *heap;
+  u32 elt_sz;   // 元素所占空间大小
+  u16 hdr_sz;   // user header结构大小
+  u16 align;    // 内存对齐大小（一般小于MALLOC_ALIGNMENT大小按MALLOC_ALIGNMENT来对齐）
+} vec_attr_t;
+
+/*
+ @n_elts: 需要申请的元素个数
+ @attr: 属性，详见vec_attr_t结构 
+ */
+__clib_export void *
+_vec_alloc_internal (uword n_elts, const vec_attr_t *const attr)
+```
