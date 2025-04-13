@@ -4,7 +4,7 @@ socket也可以用“一切皆文件”来理解，可将其视为一类特殊�
 ### socket接口
 一个socket连接是由它两端的套接字地址唯一确定的。这对套接字地址叫做套接字对(socket pair):(cliaddr:cliport, servaddr:servport)
 
-![建立连接时使用的socket interface及其流程](pics/socket-interface.png)
+![建立连接时使用的socket interface及其流程](../pic/socket-interface.png)
 #### socket接口常用数据结构
 ```C
 // #include <sys/socket.h>
@@ -163,8 +163,8 @@ int close (int __fd);
 完成了读写操作后要关闭相应的socket描述符。close函数只是使相应socket描述字的引用计数-1，只有当引用计数为0的时候，才会触发TCP客户端向服务器发送终止连接请求。
 ## TCP中的socket实现
 ### 三次握手建立连接
-![三次握手建立连接流程](pics/tcp_connect.jpg)
+![三次握手建立连接流程](../pic/tcp_connect.jpg)
 ### 四次挥手拆除连接
-![四次挥手拆除连接流程](pics/tcp_disconnect.jpg)
+![四次挥手拆除连接流程](../pic/tcp_disconnect.jpg)
 ## 参考
 https://zhuanlan.zhihu.com/p/100151937

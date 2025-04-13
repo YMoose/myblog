@@ -1,10 +1,10 @@
 # 内核网络协议栈
-![linux networking stack](pics/linux_net_stack.svg)
+![linux kernel](../pic/Simplified_Structure_of_the_Linux_Kernel.svg)
 struct proto (linux/include/net/sock.h)定义了网络协议的各类操作接口
 由proto_register (linux/net/core/sock.c)函数注册
 由inet_init (linux/net/ipv4/af_inet.c)函数进行初始化
 inet协议族的proto都会映射到inetsw_array
-
+![linux networking stack](../pic/linux_net_stack.svg)
 
 
 ## 参考
