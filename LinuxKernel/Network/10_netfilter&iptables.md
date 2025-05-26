@@ -77,6 +77,8 @@ static inline int nf_hook_thresh(u_int8_t pf, unsigned int hook,
 #define NF_STOP 5
 #define NF_MAX_VERDICT NF_STOP
 ```
+### conntrack
+conntrack是netfilter中的一个子模块，其具体处理函数是也是通过`nf_register_hook()/nf_register_hooks() (net/netfilter/core.c)`注册，并通过priority保证conntrack的hook执行在相对靠前的位置，因为conntrack的逻辑保证了其不会修改数据包，仅可能丢弃数据包，不会影响后续hook函数的执行。
 ## iptables
 iptables对规则的管理从两个维度出发
 - 表 table：根据规则的功能维度来区分，通过`-t`参数可以指定表
@@ -85,6 +87,29 @@ iptables对规则的管理从两个维度出发
 路由判断 ip_rcv_finish->ip_route_input->skb_dst_set 
         dst_output
 
+### 命令使用
+``` bash
+# 查看规则 -L list -A append -D delete -I insert （-I/D 链后面跟数字可以插入/删除具体位置的规则）
+iptables -t nat -L POSTROUTING -nv --line-number
+```
+#### 场景1：反向代理
+``` bash
+# 设置DNAT将请求转发到服务进程
+iptables -t nat -I PREROUTING 1 -p tcp --dport 80 -j DNAT --to-destination 10.20.152.181:12345
+# 到达FORWARD链时已经完成DNAT的修改
+iptables -I FORWARD -p tcp -d 10.20.152.181 --dport 12345 -j ACCEPT
+# 配置MASQUERADE规则（一种特殊的源地址转换规则）处理服务进程响应包的源目的地址和源目的端口将其转换为请求进程和代理服务器的地址和端口
+iptables -t nat -I POSTROUTING -p tcp -d 10.20.152.181 --dport 12345 -j MASQUERADE
+# 配置MASQUERADE（或SNAT）规则后，响应包不会再次经过PREROUTING链，直接走FORWARD链（有连接跟踪（conntrack）决定），所以在FORWARD链中配置ACCEPT规则放行
+iptables -A FORWARD -j ACCEPT -p tcp -s 10.20.152.181 --sport 12345
+
+# 添加日志，方便调试。日志会记录在/var/log/messages
+iptables -t nat -I PREROUTING 5  -j LOG --log-prefix "PREROUTING-DEBUG: " --log-level 4 -p tcp --dport <代理服务端口:80>
+iptables -I FORWARD -j LOG --log-prefix "FORWARD-DEBUG: " --log-level 4 -p tcp -d 10.20.152.181 --dport <服务端口:12345>
+iptables -t nat -I POSTROUTING -j LOG --log-prefix "POSTROUTING-DEBUG: " --log-level 4 -p tcp -d <服务地址:10.20.152.181> --dport <服务端口:12345>
+iptables -I FORWARD -j LOG --log-prefix "RFORWARD-DEBUG: " --log-level 4 -p tcp -s <服务地址:10.20.152.181> --sport <服务端口:12345>
+```
+
 ## 参考
-1. ![netfilter源码和tc使用介绍（翻译自Traffic Control HOWTO）](https://wiki.dreamrunner.org/public_html/Linux/Networks/netfilter.html)
+1. [netfilter源码和tc使用介绍（翻译自Traffic Control HOWTO）](https://wiki.dreamrunner.org/public_html/Linux/Networks/netfilter.html)
 2. ![](https://zchan.moe/2024/08/25/%E5%A6%82%E4%BD%95%E9%85%8D%E7%BD%AEiptables/)
