@@ -20,6 +20,9 @@ enum nf_inet_hooks {
 - NF_INET_LOCAL_OUT: `ip_local_out() (net\ipv4\ip_output.c)`中执行注册在此HOOK标志点的hook函数。协议栈上层需要封装发送数据包时会调用此函数。此HOOK标志点被视为由本机发出的IP数据包的总出口。
 - NF_INET_POST_ROUTING: `ip_mc_output() (net\ipv4\ip_output.c)` 中执行注册在此HOOK标志点的hook函数。`ip_mkroute_output()`函数会在路由表某些需要发送出去的项的`struct dst_entry->output`函数设置为`ip_mc_output()`，`dst_output()`函数调用`ip_mc_output()`时就会触发执行hook函数。此HOOK标志点被视为IP数据包的总出口。
 
+> 路由判断 `ip_rcv_finish->ip_route_input->skb_dst_set`
+
+
 以此可见，netfilter框架实际运行于Network Protocol层中
 
 在内核中通过`nf_register_hook()/nf_register_hooks() (net/netfilter/core.c)`将`nf_hook_ops`注册到`struct list_head nf_hooks[NFPROTO_NUMPROTO][NF_MAX_HOOKS]`这个链表数组中
@@ -77,22 +80,31 @@ static inline int nf_hook_thresh(u_int8_t pf, unsigned int hook,
 #define NF_STOP 5
 #define NF_MAX_VERDICT NF_STOP
 ```
-### conntrack
-conntrack是netfilter中的一个子模块，其具体处理函数是也是通过`nf_register_hook()/nf_register_hooks() (net/netfilter/core.c)`注册，并通过priority保证conntrack的hook执行在相对靠前的位置，因为conntrack的逻辑保证了其不会修改数据包，仅可能丢弃数据包，不会影响后续hook函数的执行。
+
 ## iptables
+![](../pic/Netfilter-packet-flow.svg)
+![](../pic/iptables_chains.png)
 iptables对规则的管理从两个维度出发
 - 表 table：根据规则的功能维度来区分，通过`-t`参数可以指定表
-- 链 chain：根据规则作用的时间点（HOOK标志点）来区分
+- 链 chain：根据规则作用的时间点（HOOK标志点）也就是数据的传输路径节点来区分。且可以通过命令增加删除
+一般默认有四表五链，当设备启用了SELinux时，一般还会增加一个security表，用于控制流的安全上下文
+- filter, nat, mangle, raw四个表，每个表有对应
+- INPUT, OUTPUT, FORWARD, PREROUTING, POSTROUTING五个链，分别与netfilter的五个HOOK点对应，不赘述了
 
-路由判断 ip_rcv_finish->ip_route_input->skb_dst_set 
-        dst_output
+### 表
+不同的表根据应用规则后对数据的操作集合（即规则的功能）来区分
+1. filter表：可以配置ACCEPT\REJECT\DROP操作。主要用于实现本机防火墙功能。
+2. nat表：可以配置SNAT\DNAT\MASQUERADE\NETMAP\REDIRECT操作。主要用于网络地址转换功能。其中MASQUERADE（地址伪装）与SNAT类似会自动使用当前网卡的实际IP地址替换。
+3. mangle表：可以配置MARK\CONNMARK\TCPMSS等操作。主要用于mangling(modifying 修改)数据包的元信息（如IP头）。主要用于修改数据包的TOS（Type Of Service，服务类型）、TTL（Time To Live，生存周期）指以及为数据包设置Mark标记，以实现Qos(Quality Of Service，服务质量)调整以及策略路由等应用，由于需要相应的路由设备支持，因此应用并不广泛。
+4. raw表：可以配置NOTRACK操作，让包绕过conntrack。应用也不广泛
+除了上述的操作，还有一些普遍的操作如LOG可以在各个表中设置
 
 ### 命令使用
 ``` bash
 # 查看规则 -L list -A append -D delete -I insert （-I/D 链后面跟数字可以插入/删除具体位置的规则）
 iptables -t nat -L POSTROUTING -nv --line-number
 ```
-#### 场景1：反向代理
+#### 场景1：透明代理
 ``` bash
 # 设置DNAT将请求转发到服务进程
 iptables -t nat -I PREROUTING 1 -p tcp --dport 80 -j DNAT --to-destination 10.20.152.181:12345
@@ -109,7 +121,19 @@ iptables -I FORWARD -j LOG --log-prefix "FORWARD-DEBUG: " --log-level 4 -p tcp -
 iptables -t nat -I POSTROUTING -j LOG --log-prefix "POSTROUTING-DEBUG: " --log-level 4 -p tcp -d <服务地址:10.20.152.181> --dport <服务端口:12345>
 iptables -I FORWARD -j LOG --log-prefix "RFORWARD-DEBUG: " --log-level 4 -p tcp -s <服务地址:10.20.152.181> --sport <服务端口:12345>
 ```
+## conntrack
+conntrack是netfilter中的一个子模块，其具体处理函数是也是通过`nf_register_hook()/nf_register_hooks() (net/netfilter/core.c)`注册，并通过priority保证conntrack的hook执行在相对靠前的位置，因为conntrack的逻辑保证了其不会修改数据包，仅可能丢弃数据包，不会影响后续hook函数的执行。
+可以通过如下命令查看系统中连接的连接状态
+``` bash
+conntrack -L # 列出所有连接信息及其状态
+cat /proc/net/nf_conntrack # 与上一条命令相同
+cat /proc/net/stat/nf_conntrack # 连接状态统计
+conntrack -S # 根据CPU统计
+
+```
 
 ## 参考
 1. [netfilter源码和tc使用介绍（翻译自Traffic Control HOWTO）](https://wiki.dreamrunner.org/public_html/Linux/Networks/netfilter.html)
-2. ![](https://zchan.moe/2024/08/25/%E5%A6%82%E4%BD%95%E9%85%8D%E7%BD%AEiptables/)
+2. [如何配置iptables](https://zchan.moe/2024/08/25/%E5%A6%82%E4%BD%95%E9%85%8D%E7%BD%AEiptables/)
+3. [[译] 深入理解 iptables 和 netfilter 架构](https://arthurchiao.art/blog/deep-dive-into-iptables-and-netfilter-arch-zh/)
+4. [Connection Tracking (conntrack): Design and Implementation Inside Linux Kernel](https://arthurchiao.art/blog/conntrack-design-and-implementation/)
