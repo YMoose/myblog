@@ -142,6 +142,34 @@ PCIe枚举后，内核可以得到设备MMIO使用的PA地址**B**，然后通�
 	Kernel driver in use: i40e
 	Kernel modules: i40e
 ```
+### PCIe设备与驱动匹配
+根据PCIe设备配置空间的Device ID 和 Vendor ID决定了设备的型号
+``` C
+// file: include\linux\mod_devicetable.h
+struct pci_device_id {
+	__u32 vendor, device;		/* Vendor and device ID or PCI_ANY_ID*/
+	__u32 subvendor, subdevice;	/* Subsystem ID's or PCI_ANY_ID */
+	__u32 class, class_mask;	/* (class,subclass,prog-if) triplet */
+	kernel_ulong_t driver_data;	/* Data private to the driver */
+};
+```
+
+```C
+// file: drivers\net\ethernet\intel\igb\igb_main.c
+static struct pci_driver igb_driver = {
+	.name     = igb_driver_name,
+	.id_table = igb_pci_tbl,
+	.probe    = igb_probe,
+	.remove   = igb_remove,
+#ifdef CONFIG_PM
+	.driver.pm = &igb_pm_ops,
+#endif
+	.shutdown = igb_shutdown,
+	.sriov_configure = igb_pci_sriov_configure,
+	.err_handler = &igb_err_handler
+};
+```
+## 接收网络数据
 
 ## 参考
 1. [Memory-mapped IO vs Port-mapped IO](https://www.bogotobogo.com/Embedded/memory_mapped_io_vs_port_mapped_isolated_io.php)
