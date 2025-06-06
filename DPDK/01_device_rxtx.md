@@ -1,5 +1,5 @@
-# DPDK
-as a user driver，DPDK被认为是一组用户态的网络包输入/输出库
+# 数据包到达网卡设备
+数据包以数据帧的形式在网络上流转，会先到达网卡设备，由网卡处理后上送。
 ## background
 计算机系统与设备数据的数据传输的方式有两种
 1. Programmed I/O (PIO)：通过CPU指令控制数据传输，一条指令对应一次传输，且数据供cpu直接使用（同样可以由cpu转存到内存上供后续使用）。如果访问设备时，设备数据未准备好，cpu可能会踏步等待或者被调度让其他任务执行并等待设备中断。PIO的形式有两种，对于同一个设备两种方式可以同时使用
@@ -10,7 +10,7 @@ as a user driver，DPDK被认为是一组用户态的网络包输入/输出库
 2. Direct Memory Access (DMA)：使用PIO的方式虽然简单但需要全程CPU参与，在内存以及传输跟不上CPU的速度的情况(大数据量传输)下，浪费计算资源，DMA使得CPU从数据传输的工作中解放出来去做更有效的任务。DMA有以下三种类型
    - third-party DMA（standard DMA）：最初的DMA方式，这种方式在ISA总线和IBM PC上使用，由于当时大多是**共享总线**，且外部设备一般只能作为总线的从设备，不能够主动发出请求，所以需要在共享总线上有且仅有一个的DMAC(DMA Controller，在IBM PC上是Intel 8237)，DMAC替代了CPU在PIO中的位置。DMAC和CPU都可以作为FSB的master，都可以向内存控制器发送内存读写请求。为执行DMA事务，CPU需要先通过PIO设置DMAC（DMA描述符，至少包括数据传输的源地址（SA）、目的地址（DA）、需要传输的数据量（data size）和每次总线传输的数据位宽（transfer size））。设置完成后，DMAC会发起对共享总线的使用请求，成为共享总线的master。
    - bus master（first-party DMA）：现在普遍使用的PCI总线是一种点对点模型，且多数设备有自己的DMA控制器。当设备需要进行内存访问时，设备设置自己的DMA寄存器（DMA描述符，至少包括数据传输的源地址（SA）、目的地址（DA）、需要传输的数据量（data size）和每次总线传输的数据位宽（transfer size）），设备的DMA控制器主动向总线发出DMA读写请求，请求总线控制权，获得控制权后暂时作为bus master，向内存目标地址进行读写。
-## 地址空间
+### 地址空间
 ```
              CPU                  CPU                  Bus
            Virtual              Physical             Address
@@ -38,14 +38,19 @@ CPU物理地址空间的排布可以通过`/proc/iomem`查看，不仅包括了�
 CPU执行的指令（内核和用户程序）使用的是CPU Virtual Address Space的地址**C**，通过MMU（段/页内存机制）转换得到了CPU Physical Address Space上的地址**B**，PA的归属最终由硬件电路决定。CPU发出的物理地址会被送到内存控制器（Memory Controller）或芯片组（Host Bridge Chipset），根据预定义的地址路由规则判断，如果是MMIO地址就会进一步对设备进行操作
 I/O设备上的芯片（包括DMA）读写内存使用的是Bus Address Space的地址**Z**(总线地址/dma地址)（某些系统中总线地址恰好与CPU Physical Address相同），通过IOMMU转换得到了CPU Physical Address Space上的地址**Y**
 PCIe枚举后，内核可以得到设备MMIO使用的PA地址**B**，然后通过ioremap()将physical Address 映射到 CPU Virtual Address Space 地址**C**以供程序（用户程序、驱动程序）访问MMIO使用。在使用完设备之后（比如在模块的 exit 例程中），调用 iounmap（）将地址空间返回给内核。
-### 初始化
-#### 设备配置
+## 网卡硬件设备介绍
+![网卡硬件结构](pics/pcie_nic.jpg)
+网卡工作于物理层和数据链路层，其功能模块可以简单分为两个部分
+1. MAC（Media Access Control 媒体访问控制层）：主要负责数据链路层的处理。MAC向上连接PCI总线上送收到的数据包给操作系统/接收操作系统待发送的数据包，向下通过MII接口连接到PHY，提供接受/发送的数据进行数据帧的构建、错误校验等功能
+2. PHY（Physical Layer）：主要负责物理层的处理。PHY通过物理介质连接到网络，提供接受信号、物理信号（指电压/电流波形/光信号等）与数据之间的相互转换、数据编码、时间基准等功能
+## 设备初始化
+### 设备配置
 一般来说，系统上电后BIOS通过ACPI（Advanced Configuration and Power Interface）完成PCI总线上设备的枚举，为所有设备分配配置空间并将所有设备的配置空间映射到物理地址空间中，然后BIOS通过ECAM（Enhanced Configuration Access Mechanism）访问机制（PCI时代是CAM机制）转交给操作系统内核。操作系统使用BDF（Bus总线号 + Device设备号 + Function功能号）构成了每个PCIe设备节点的唯一标识，通过ECAM基址+设备BDF偏移获得设备配置空间对应的物理内存地址，获得设备配置空间对应的物理内存地址则可以通过MMIO读写配置空间。
 ![Type 0 Configuration Space Header](pics/pcie-configuration-space-header-type-0.png)
 ![Type 1 Configuration Space Header](pics/pcie-configuration-space-header-type-1.png)
 配置空间中的BAR（Base Address Register）用于描述不同的内存空间或者IO空间的地址基址和范围（为了描述不同类型的地址空间，这里的地址不是单纯的指针，有特定结构），设备和系统通过一个握手协议对BAR进行多次读写来协商基址和范围，具体的值可以通过`lspci -vv`查看。
 ![BAR struct](pics/pcie-configuration-space-bar-address.png)
-``` sh
+``` bash
 [root@localhost /]# cat /proc/iomem | grep 18:00.0
     a9800000-a9ffffff : 0000:18:00.0
     aa400000-aa7fffff : 0000:18:00.0
@@ -137,6 +142,7 @@ PCIe枚举后，内核可以得到设备MMIO使用的PA地址**B**，然后通�
 	Kernel driver in use: i40e
 	Kernel modules: i40e
 ```
+
 ## 参考
 1. [Memory-mapped IO vs Port-mapped IO](https://www.bogotobogo.com/Embedded/memory_mapped_io_vs_port_mapped_isolated_io.php)
 2. [网卡硬件收发包流程](https://www.cnblogs.com/winter-blogs/p/12003210.html)
@@ -145,3 +151,5 @@ PCIe枚举后，内核可以得到设备MMIO使用的PA地址**B**，然后通�
 5. [PCIe设备配置](https://r12f.com/posts/pcie-2-config/)
 6. https://read.seas.harvard.edu/cs161/2019/lectures/lecture17/
 7. https://www.kernel.org/doc/html/latest/driver-api/device-io.html
+8. https://zhuanlan.zhihu.com/p/588313000
+9. [以太网介绍及硬件设计](https://blog.csdn.net/sinat_15677011/article/details/105470683)

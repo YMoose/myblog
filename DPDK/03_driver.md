@@ -7,7 +7,7 @@
 3. KNI:
 
 ## linux net driver
-Linux网络设备驱动程序遵循通用的接口，设计时采用的是面向对象的方法，一个设备就是一个对象（net_device结构）。一个网络设备最基本的方法有初始化、发送和接收
+驱动实现源码位于driver/net/ethernet。Linux网络设备驱动程序遵循通用的接口，设计时采用的是面向对象的方法，一个设备就是一个对象（net_device结构）。一个网络设备最基本的方法有初始化、发送和接收
 
 ## 参考
 https://www.kerneltravel.net/blog/2020/network_ljr7/

@@ -1,3 +1,10 @@
+# DPDK
+as a user driver，DPDK被认为是一组用户态的网络包输入/输出库
+## 网络数据帧到应用程序处理的过程
+1. 数据帧由网络层到达网卡设备，网卡设备处理数据帧（设备及其初始化）
+2. 网卡设备上送数据帧（DMA）
+3. 操作系统获取数据（驱动）
+4. 用户态应用程序处理数据（DPDK）
 ## Arch
 ### Core
 1. EAL(Environment Abstraction Layer): set up initiation(像了解你的核数，要多少内存，哪些内存和哪个核绑定，网卡信息这些)
