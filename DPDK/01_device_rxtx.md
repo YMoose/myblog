@@ -43,12 +43,64 @@ PCIe枚举后，内核可以得到设备MMIO使用的PA地址**B**，然后通�
 网卡工作于物理层和数据链路层，其功能模块可以简单分为两个部分
 1. MAC（Media Access Control 媒体访问控制层）：主要负责数据链路层的处理。MAC向上连接PCI总线上送收到的数据包给操作系统/接收操作系统待发送的数据包，向下通过MII接口连接到PHY，提供接受/发送的数据进行数据帧的构建、错误校验等功能
 2. PHY（Physical Layer）：主要负责物理层的处理。PHY通过物理介质连接到网络，提供接受信号、物理信号（指电压/电流波形/光信号等）与数据之间的相互转换、数据编码、时间基准等功能
+
+![PCIe协议栈](pics/pcie-stack.png)
+现代网络设备通常通过PCIe总线与CPU连接，数据以包（packet）为单位通过PCIe协议进行传输。（pcie细节可以参考[5](https://r12f.com/posts/pcie-2-config/)的系列文章继续了解）
 ## 设备初始化
 ### 设备配置
-一般来说，系统上电后BIOS通过ACPI（Advanced Configuration and Power Interface）完成PCI总线上设备的枚举，为所有设备分配配置空间并将所有设备的配置空间映射到物理地址空间中，然后BIOS通过ECAM（Enhanced Configuration Access Mechanism）访问机制（PCI时代是CAM机制）转交给操作系统内核。操作系统使用BDF（Bus总线号 + Device设备号 + Function功能号）构成了每个PCIe设备节点的唯一标识，通过ECAM基址+设备BDF偏移获得设备配置空间对应的物理内存地址，获得设备配置空间对应的物理内存地址则可以通过MMIO读写配置空间。
+一般来说
+1. 系统上电后BIOS/UEFI通过ACPI（Advanced Configuration and Power Interface）完成PCI总线上设备的枚举，为所有设备分配配置空间并将所有设备的配置空间映射到物理地址空间中，并生成ACPI表（ECAM基地址存放于ACPI表的MCFG表中）。UEFI将其数据通过内核启动参数传递给内核。
+2. 内核初始化`start_kernel(void)`中针对特定体系架构进行初始化`setup_arch()`，在其中进行`efi_init()`efi的初始化。从`struct boot_params boot_params`中获取到`struct efi efi`数据结构，其中包含ACPI表信息。
+3. 之后`setup_arch()`->`acpi_boot_table_init(void)`->`acpi_table_init(void)`->`acpi_initialize_tables`函数中通过`acpi_os_get_root_pointer(void)`获取ACPI表的RSDP地址，并进一步通过`acpi_tb_parse_root_table`函数将ACPI表的内容解析到全局数据结构`struct acpi_table_list acpi_gbl_root_table_list`中。
+4. 内核初始化`start_kernel(void)`中初始化ACPI子系统`acpi_early_init(void)`，其中`acpi_load_tables(void)`->`acpi_tb_load_namespace(void)`函数将解析全局数据结构`struct acpi_table_list acpi_gbl_root_table_list`并加载到ACPI命名空间树`struct acpi_namespace_node *acpi_gbl_root_node`中。
+5. acpi子系统的初始化通过`subsys_initcall(acpi_init);`注册，再通过执行`start_kernel(void)`最后一步`rest_init(void)`->`kernel_thread(kernel_init, NULL, CLONE_FS | CLONE_SIGHAND)`->`kernel_init(void *unused)`->`kernel_init_freeable(void)`->`do_basic_setup(void)`->`do_initcalls(void)`函数时被调用。 
+6. `acpi_init(void)`->`acpi_scan_init(void)`时，会注册设备扫描handler其中就包括`struct acpi_scan_handler pci_root_handler`，注册后`acpi_bus_scan(ACPI_ROOT_OBJECT)`函数会扫描ACPI命名空间树，通过注册的扫描handler寻找并创建设备（包括PCI Root Bridge 设备）
+7. 对于创建好的PCI Root Bridge设备，`acpi_bus_scan(ACPI_ROOT_OBJECT)`还会调用`acpi_bus_device_attach`->`acpi_scan_attach_handler`函数中注册了的`pci_root_handler`的`acpi_pci_root_add`从ACPI表中获取PCI Root Bridge的domain和bus（包括之前ACPI表的MCFG地址）（参考如下dmesg日志）并构建一个`struct acpi_pci_root *root`数据结构，通过函数`struct pci_bus *pci_acpi_scan_root(struct acpi_pci_root *root)`继续扫描PCI设备。
+8. `pci_acpi_scan_root`->`pci_create_root_bus`函数中会遍历列举在PCI Root Bridgebus上的resource。
+9. `pci_scan_child_bus`->`pci_scan_slot`->`pci_scan_single_device`->`pci_scan_device`->`pci_setup_device`中创建`struct pci_dev *dev`数据结构并为pci设备设置配置空间。
+简单来说就是，BIOS通过ECAM（Enhanced Configuration Access Mapping）（PCI时代是CAM机制）将其转交给操作系统内核。操作系统使用BDF（Bus总线号 + Device设备号 + Function功能号）构成了每个PCIe设备节点的唯一标识，通过ECAM基址+设备BDF偏移获得设备配置空间对应的物理内存地址，获得设备配置空间对应的物理内存地址则可以通过MMIO读写配置空间。
+``` dmesg
+[    1.371200] PCI: Using host bridge windows from ACPI; if necessary, use "pci=nocrs" and report a bug
+[    1.371247] ACPI: Enabled 6 GPEs in block 00 to 7F
+[    1.409123] ACPI: PCI Root Bridge [PC00] (domain 0000 [bus 00-16])
+[    1.409128] acpi PNP0A08:00: _OSC: OS supports [ExtendedConfig ASPM ClockPM Segments MSI]
+[    1.409219] acpi PNP0A08:00: _OSC: platform does not support [SHPCHotplug AER]
+[    1.409300] acpi PNP0A08:00: _OSC: OS now controls [PCIeHotplug PME PCIeCapability]
+[    1.409705] PCI host bridge to bus 0000:00
+[    1.409708] pci_bus 0000:00: root bus resource [io  0x0000-0x03af window]
+[    1.409709] pci_bus 0000:00: root bus resource [io  0x03e0-0x0cf7 window]
+[    1.409710] pci_bus 0000:00: root bus resource [io  0x03b0-0x03bb window]
+[    1.409712] pci_bus 0000:00: root bus resource [io  0x03c0-0x03df window]
+[    1.409713] pci_bus 0000:00: root bus resource [io  0x1000-0x3fff window]
+[    1.409714] pci_bus 0000:00: root bus resource [mem 0x000a0000-0x000bffff window]
+[    1.409716] pci_bus 0000:00: root bus resource [mem 0x000c4000-0x000c7fff window]
+[    1.409717] pci_bus 0000:00: root bus resource [mem 0xfe010000-0xfe010fff window]
+[    1.409718] pci_bus 0000:00: root bus resource [mem 0x90000000-0x9d7fffff window]
+[    1.409719] pci_bus 0000:00: root bus resource [mem 0x380000000000-0x383fffffffff window]
+[    1.409721] pci_bus 0000:00: root bus resource [bus 00-16]
+[    1.409729] pci 0000:00:00.0: [8086:2020] type 00 class 0x060000
+[    1.409897] pci 0000:00:04.0: [8086:2021] type 00 class 0x088000
+[    1.409913] pci 0000:00:04.0: reg 0x10: [mem 0x383ffff2c000-0x383ffff2ffff 64bit]
+[    1.410040] pci 0000:00:04.1: [8086:2021] type 00 class 0x088000
+[    1.410055] pci 0000:00:04.1: reg 0x10: [mem 0x383ffff28000-0x383ffff2bfff 64bit]
+[    1.410183] pci 0000:00:04.2: [8086:2021] type 00 class 0x088000
+[    1.410197] pci 0000:00:04.2: reg 0x10: [mem 0x383ffff24000-0x383ffff27fff 64bit]
+[    1.410322] pci 0000:00:04.3: [8086:2021] type 00 class 0x088000
+[    1.410337] pci 0000:00:04.3: reg 0x10: [mem 0x383ffff20000-0x383ffff23fff 64bit]
+[    1.410463] pci 0000:00:04.4: [8086:2021] type 00 class 0x088000
+[    1.410478] pci 0000:00:04.4: reg 0x10: [mem 0x383ffff1c000-0x383ffff1ffff 64bit]
+[    1.410606] pci 0000:00:04.5: [8086:2021] type 00 class 0x088000
+[    1.410621] pci 0000:00:04.5: reg 0x10: [mem 0x383ffff18000-0x383ffff1bfff 64bit]
+[    1.410747] pci 0000:00:04.6: [8086:2021] type 00 class 0x088000
+[    1.410761] pci 0000:00:04.6: reg 0x10: [mem 0x383ffff14000-0x383ffff17fff 64bit]
+[    1.410888] pci 0000:00:04.7: [8086:2021] type 00 class 0x088000
+[    1.410902] pci 0000:00:04.7: reg 0x10: [mem 0x383ffff10000-0x383ffff13fff 64bit]
+```
+![ECAM](pics/ecam.png)
+> 上述流程是在服务器端的一般情况，因为服务器端用户对不同硬件的兼容性上有需求，UEFI+ACPI的生态已经相对完善，实现也相对灵活。在ARM嵌入式端则采用了设备树（DeviceTree）的方式对设备进行枚举。另外有些设备不支持ECAM机制需要能通过I/O-based (CF8/CFC mechanism)来访问PCI设备配置空间.
 ![Type 0 Configuration Space Header](pics/pcie-configuration-space-header-type-0.png)
 ![Type 1 Configuration Space Header](pics/pcie-configuration-space-header-type-1.png)
-配置空间中的BAR（Base Address Register）用于描述不同的内存空间或者IO空间的地址基址和范围（为了描述不同类型的地址空间，这里的地址不是单纯的指针，有特定结构），设备和系统通过一个握手协议对BAR进行多次读写来协商基址和范围，具体的值可以通过`lspci -vv`查看。
+配置空间中的BAR（Base Address Register）用于描述不同的内存空间或者IO空间的地址基址和范围（为了描述不同类型的地址空间，这里的地址不是单纯的指针，有特定结构），BAR的值最初也是由BIOS配置， 设备和系统通过一个握手协议对BAR进行多次读写来协商基址和范围，具体的值可以通过`lspci -vv`查看。
 ![BAR struct](pics/pcie-configuration-space-bar-address.png)
 ``` bash
 [root@localhost /]# cat /proc/iomem | grep 18:00.0
@@ -143,17 +195,33 @@ PCIe枚举后，内核可以得到设备MMIO使用的PA地址**B**，然后通�
 	Kernel modules: i40e
 ```
 ### PCIe设备与驱动匹配
-根据PCIe设备配置空间的Device ID 和 Vendor ID决定了设备的型号
-``` C
-// file: include\linux\mod_devicetable.h
-struct pci_device_id {
-	__u32 vendor, device;		/* Vendor and device ID or PCI_ANY_ID*/
-	__u32 subvendor, subdevice;	/* Subsystem ID's or PCI_ANY_ID */
-	__u32 class, class_mask;	/* (class,subclass,prog-if) triplet */
-	kernel_ulong_t driver_data;	/* Data private to the driver */
-};
-```
+驱动通过`module_init`进行加载，加载时通过`pci_register_driver`对`igb_driver`注册到PCI子系统中。DPDK则使用`pci_register_driver`注册了uio驱动。
+```C
+// file: drivers\net\ethernet\intel\igb\igb_main.c
+/**
+ *  igb_init_module - Driver Registration Routine
+ *
+ *  igb_init_module is the first routine called when the driver is
+ *  loaded. All it does is register with the PCI subsystem.
+ **/
+static int __init igb_init_module(void)
+{
+	int ret;
+	pr_info("%s - version %s\n",
+	       igb_driver_string, igb_driver_version);
 
+	pr_info("%s\n", igb_copyright);
+
+#ifdef CONFIG_IGB_DCA
+	dca_register_notify(&dca_notifier);
+#endif
+	ret = pci_register_driver(&igb_driver);
+	return ret;
+}
+
+module_init(igb_init_module);
+```
+驱动对应的所有设备型号会存放在`pci_driver`结构中的`id_table`中。通过PCIe设备配置空间的Device ID 和 Vendor ID找到`igb_pci_tbl`中的设备后，`probe`函数（在这里也就是`igb_probe`）将会对设备作为PCI设备进行初始化。
 ```C
 // file: drivers\net\ethernet\intel\igb\igb_main.c
 static struct pci_driver igb_driver = {
@@ -169,6 +237,67 @@ static struct pci_driver igb_driver = {
 	.err_handler = &igb_err_handler
 };
 ```
+### 驱动初始化
+驱动的`probe`函数中会调用`register_netdev`将设备`netdev`以内核网络设备注册到网络子系统中。`netdev->netdev_ops`也就是`igb_netdev_ops`中定义了内核网络设备的各类操作接口实现。
+```C
+// file: drivers\net\ethernet\intel\igb\igb_main.c
+/**
+ *  igb_probe - Device Initialization Routine
+ *  @pdev: PCI device information struct
+ *  @ent: entry in igb_pci_tbl
+ *
+ *  Returns 0 on success, negative on failure
+ *
+ *  igb_probe initializes an adapter identified by a pci_dev structure.
+ *  The OS initialization, configuring of the adapter private structure,
+ *  and a hardware reset occur.
+ **/
+static int igb_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
+{
+	struct net_device *netdev;
+	struct igb_adapter *adapter;
+	struct e1000_hw *hw;
+	u16 eeprom_data = 0;
+	s32 ret_val;
+	static int global_quad_port_a; /* global quad port a indication */
+	const struct e1000_info *ei = igb_info_tbl[ent->driver_data];
+	unsigned long mmio_start, mmio_len;
+	int err, pci_using_dac;
+	u8 part_str[E1000_PBANUM_LENGTH];
+	······
+	err = -ENOMEM;
+	netdev = alloc_etherdev_mq(sizeof(struct igb_adapter),
+				   IGB_MAX_TX_QUEUES);
+	if (!netdev)
+		goto err_alloc_etherdev;
+
+	SET_NETDEV_DEV(netdev, &pdev->dev);
+
+	pci_set_drvdata(pdev, netdev);
+	adapter = netdev_priv(netdev);
+	adapter->netdev = netdev;
+	adapter->pdev = pdev;
+	hw = &adapter->hw;
+	hw->back = adapter;
+	adapter->msg_enable = netif_msg_init(debug, DEFAULT_MSG_ENABLE);
+
+	mmio_start = pci_resource_start(pdev, 0);
+	mmio_len = pci_resource_len(pdev, 0);
+
+	err = -EIO;
+	hw->hw_addr = ioremap(mmio_start, mmio_len);
+	if (!hw->hw_addr)
+		goto err_ioremap;
+
+	netdev->netdev_ops = &igb_netdev_ops;
+	igb_set_ethtool_ops(netdev); // 注册ethtool工具使用的操作函数
+	netdev->watchdog_timeo = 5 * HZ;
+	······
+	err = register_netdev(netdev);
+	······
+}
+```
+
 ## 接收网络数据
 
 ## 参考
@@ -177,7 +306,11 @@ static struct pci_driver igb_driver = {
 3. [DMA介绍](https://jianyue.tech/posts/dma/)
 4. [DMA指南](https://www.kernel.org/doc/html/latest/core-api/dma-api-howto.html)
 5. [PCIe设备配置](https://r12f.com/posts/pcie-2-config/)
-6. https://read.seas.harvard.edu/cs161/2019/lectures/lecture17/
-7. https://www.kernel.org/doc/html/latest/driver-api/device-io.html
-8. https://zhuanlan.zhihu.com/p/588313000
-9. [以太网介绍及硬件设计](https://blog.csdn.net/sinat_15677011/article/details/105470683)
+6. https://r12f.com/posts/pcie-3-tl-dll/
+7. https://r12f.com/posts/pcie-4-phy/
+8. https://read.seas.harvard.edu/cs161/2019/lectures/lecture17/
+9. https://www.kernel.org/doc/html/latest/driver-api/device-io.html
+10. https://zhuanlan.zhihu.com/p/588313000
+11. [以太网介绍及硬件设计](https://blog.csdn.net/sinat_15677011/article/details/105470683)
+12. 张彦飞. 深入理解Linux网络: ：修炼底层内功，掌握高性能原理. 北京: 电子工业出版社, 2022.
+13. [ACPI设备树- ACPI命名空间的表示](https://www.cnblogs.com/wanglouxiaozi/p/18720529)
