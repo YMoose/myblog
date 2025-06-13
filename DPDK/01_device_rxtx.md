@@ -195,7 +195,7 @@ PCIe枚举后，内核可以得到设备MMIO使用的PA地址**B**，然后通�
 	Kernel modules: i40e
 ```
 ### PCIe设备与驱动匹配
-驱动通过`module_init`进行加载，加载时通过`pci_register_driver`对`igb_driver`注册到PCI子系统中。DPDK则使用`pci_register_driver`注册了uio驱动。
+驱动通过`module_init`进行加载，加载时通过`pci_register_driver`对`igb_driver`注册到PCI子系统中。DPDK则使用`pci_register_driver`注册了uio驱动。已经注册的pci驱动可以通过`ls /sys/bus/pci/drivers`查看
 ```C
 // file: drivers\net\ethernet\intel\igb\igb_main.c
 /**
@@ -237,8 +237,23 @@ static struct pci_driver igb_driver = {
 	.err_handler = &igb_err_handler
 };
 ```
+也可以通过手动将PCI设备解绑绑定到某一个驱动
+``` bash
+# 解绑
+echo <BDF> > /sys/bus/pci/devices/<BDF>/driver/unbind
+
+# 绑定
+
+lspci -nn -s <BDF> 
+# > 18:00.1 Ethernet controller [0200]: Intel Corporation Ethernet Controller XL710 for 40GbE QSFP+ [8086:1583] (rev 02)
+# 8086 1583
+echo "<vendor device>" > /sys/bus/pci/drivers/igb_uio/new_id
+echo <BDF> > /sys/bus/pci/drivers/<driver>/bind
+```
 ### 驱动初始化
-驱动的`probe`函数中会调用`register_netdev`将设备`netdev`以内核网络设备注册到网络子系统中。`netdev->netdev_ops`也就是`igb_netdev_ops`中定义了内核网络设备的各类操作接口实现。
+绑定驱动后，驱动的`probe`函数会被调用。
+#### 内核驱动
+内核驱动会调用`register_netdev`将设备`netdev`以内核网络设备注册到网络子系统中。`netdev->netdev_ops`也就是`igb_netdev_ops`中定义了内核网络设备的各类操作接口实现。
 ```C
 // file: drivers\net\ethernet\intel\igb\igb_main.c
 /**
@@ -293,12 +308,101 @@ static int igb_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	igb_set_ethtool_ops(netdev); // 注册ethtool工具使用的操作函数
 	netdev->watchdog_timeo = 5 * HZ;
 	······
+	/* setup the private structure */
+	err = igb_sw_init(adapter);
+	if (err)
+		goto err_sw_init;
+	······
 	err = register_netdev(netdev);
 	······
 }
 ```
+其中`struct net_device_ops`的`ndo_open`成员函数会在`dev_open`的时候被调用（比如网卡up的时候），`igb_netdev_ops`中就是`igb_open`，`igb_open`会调用`igb_setup_all_rx/tx_resources`根据队列数量分配RingBuffer，建立内存和Rx/Tx队列的映射关系。`rx_ring->desc`是网卡使用的内存地址，是网卡设备通过dma将数据搬运到内存上的地址，`rx_ring->rx_buufer_info`是内核使用的内存地址。
+``` C
+/**
+ *  igb_setup_rx_resources - allocate Rx resources (Descriptors)
+ *  @rx_ring: Rx descriptor ring (for a specific queue) to setup
+ *
+ *  Returns 0 on success, negative on failure
+ **/
+int igb_setup_rx_resources(struct igb_ring *rx_ring)
+{
+	struct device *dev = rx_ring->dev;
+	int size;
 
+	size = sizeof(struct igb_rx_buffer) * rx_ring->count;
+
+	rx_ring->rx_buffer_info = vzalloc(size);
+	if (!rx_ring->rx_buffer_info)
+		goto err;
+
+	/* Round up to nearest 4K */
+	rx_ring->size = rx_ring->count * sizeof(union e1000_adv_rx_desc);
+	rx_ring->size = ALIGN(rx_ring->size, 4096);
+
+	rx_ring->desc = dma_alloc_coherent(dev, rx_ring->size,
+					   &rx_ring->dma, GFP_KERNEL);
+	if (!rx_ring->desc)
+		goto err;
+	······
+}
+```
+todo 中断设置
+### uio驱动
+```C
+// file: http://dpdk.org/git/dpdk-kmods/linux/igb_uio/igb_uio.c
+static int
+igbuio_pci_probe(struct pci_dev *dev, const struct pci_device_id *id)
+{
+	struct rte_uio_pci_dev *udev;
+	dma_addr_t map_dma_addr;
+	void *map_addr;
+	int err;
+	······
+}
+```
+### vfio驱动
+```C
+// file: drivers\vfio\pci\vfio_pci.c
+static int vfio_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
+{
+	u8 type;
+	struct vfio_pci_device *vdev;
+	struct iommu_group *group;
+	int ret;
+
+	pci_read_config_byte(pdev, PCI_HEADER_TYPE, &type);
+	if ((type & PCI_HEADER_TYPE) != PCI_HEADER_TYPE_NORMAL)
+		return -EINVAL;
+
+	group = iommu_group_get(&pdev->dev);
+	if (!group)
+		return -EINVAL;
+
+	vdev = kzalloc(sizeof(*vdev), GFP_KERNEL);
+	if (!vdev) {
+		iommu_group_put(group);
+		return -ENOMEM;
+	}
+
+	vdev->pdev = pdev;
+	vdev->irq_type = VFIO_PCI_NUM_IRQS;
+	mutex_init(&vdev->igate);
+	spin_lock_init(&vdev->irqlock);
+	atomic_set(&vdev->refcnt, 0);
+
+	ret = vfio_add_group_dev(&pdev->dev, &vfio_pci_ops, vdev);
+	if (ret) {
+		iommu_group_put(group);
+		kfree(vdev);
+	}
+
+	return ret;
+}
+```
 ## 接收网络数据
+### 
+### dma
 
 ## 参考
 1. [Memory-mapped IO vs Port-mapped IO](https://www.bogotobogo.com/Embedded/memory_mapped_io_vs_port_mapped_isolated_io.php)

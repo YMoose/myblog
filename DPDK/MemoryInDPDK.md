@@ -20,12 +20,12 @@ DPDK API统一使用ret_iova_t来代表硬件操作的物理地址或IO虚拟地
 
 
 ## 参考
-1. https://www.sdnlab.com/23475.html
-2. https://www.sdnlab.com/23551.html
-3. https://www.intel.com/content/www/us/en/developer/articles/technical/memory-in-dpdk-part-2-deep-dive-into-iova.html
-4. https://www.intel.com/content/www/us/en/developer/articles/technical/memory-in-dpdk-part-3-1711-and-earlier-releases.html
-5. https://www.intel.com/content/www/us/en/developer/articles/technical/memory-in-dpdk-part-4-1811-and-beyond.html
-6. https://zhuanlan.zhihu.com/p/363622877
-7. https://archive.kernel.org/oldlinux/htmldocs/kernel-api/API-get-user-pages-fast.html
-8. [PMD原理及代码解析](https://cloud.tencent.com/developer/article/1411982) 
-9. [dpdk网卡绑定代码分析](https://blog.csdn.net/aixueai/article/details/114790649)
+
+1. https://www.intel.com/content/www/us/en/developer/articles/technical/memory-in-dpdk-part-1-general-concepts.html
+2. https://www.intel.com/content/www/us/en/developer/articles/technical/memory-in-dpdk-part-2-deep-dive-into-iova.html
+3. https://www.intel.com/content/www/us/en/developer/articles/technical/memory-in-dpdk-part-3-1711-and-earlier-releases.html
+4. https://www.intel.com/content/www/us/en/developer/articles/technical/memory-in-dpdk-part-4-1811-and-beyond.html
+5. https://zhuanlan.zhihu.com/p/363622877
+6. https://archive.kernel.org/oldlinux/htmldocs/kernel-api/API-get-user-pages-fast.html
+7. [PMD原理及代码解析](https://cloud.tencent.com/developer/article/1411982) 
+8. [dpdk网卡绑定代码分析](https://blog.csdn.net/aixueai/article/details/114790649)
