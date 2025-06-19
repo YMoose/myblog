@@ -252,8 +252,8 @@ echo <BDF> > /sys/bus/pci/drivers/<driver>/bind
 ```
 ### 驱动初始化
 绑定驱动后，驱动的`probe`函数会被调用。
+
 #### 内核驱动
-内核驱动会调用`register_netdev`将设备`netdev`以内核网络设备注册到网络子系统中。`netdev->netdev_ops`也就是`igb_netdev_ops`中定义了内核网络设备的各类操作接口实现。
 ```C
 // file: drivers\net\ethernet\intel\igb\igb_main.c
 /**
@@ -279,6 +279,38 @@ static int igb_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	unsigned long mmio_start, mmio_len;
 	int err, pci_using_dac;
 	u8 part_str[E1000_PBANUM_LENGTH];
+
+	/* Catch broken hardware that put the wrong VF device ID in
+	 * the PCIe SR-IOV capability.
+	 */
+	if (pdev->is_virtfn) {
+		WARN(1, KERN_ERR "%s (%hx:%hx) should not be a VF!\n",
+			pci_name(pdev), pdev->vendor, pdev->device);
+		return -EINVAL;
+	}
+
+	err = pci_enable_device_mem(pdev);
+	if (err)
+		return err;
+
+	pci_using_dac = 0;
+	err = dma_set_mask(&pdev->dev, DMA_BIT_MASK(64));
+	if (!err) {
+		err = dma_set_coherent_mask(&pdev->dev, DMA_BIT_MASK(64));
+		if (!err)
+			pci_using_dac = 1;
+	} else {
+		err = dma_set_mask(&pdev->dev, DMA_BIT_MASK(32));
+		if (err) {
+			err = dma_set_coherent_mask(&pdev->dev,
+						    DMA_BIT_MASK(32));
+			if (err) {
+				dev_err(&pdev->dev,
+					"No usable DMA configuration, aborting\n");
+				goto err_dma;
+			}
+		}
+	}
 	······
 	err = -ENOMEM;
 	netdev = alloc_etherdev_mq(sizeof(struct igb_adapter),
@@ -317,8 +349,13 @@ static int igb_probe(struct pci_dev *pdev, const struct pci_device_id *ent)
 	······
 }
 ```
-其中`struct net_device_ops`的`ndo_open`成员函数会在`dev_open`的时候被调用（比如网卡up的时候），`igb_netdev_ops`中就是`igb_open`，`igb_open`会调用`igb_setup_all_rx/tx_resources`根据队列数量分配RingBuffer，建立内存和Rx/Tx队列的映射关系。`rx_ring->desc`是网卡使用的内存地址，是网卡设备通过dma将数据搬运到内存上的地址，`rx_ring->rx_buufer_info`是内核使用的内存地址。
+##### 网卡启动
+内核驱动会调用`register_netdev`将设备`netdev`以内核网络设备注册到网络子系统中。`netdev->netdev_ops`也就是`igb_netdev_ops`中定义了内核网络设备的各类操作接口实现。
+其中`struct net_device_ops`的`ndo_open`成员函数会在`dev_open`的时候被调用（比如网卡up的时候），`igb_netdev_ops`中就是`igb_open`，`igb_open`会调用`igb_setup_all_rx/tx_resources`根据队列数量调用`igb_setup_rx_resources`分配RingBuffer，建立内存和Rx/Tx队列的映射关系。
+- `rx_ring->desc`是网卡使用的内存地址，网卡设备通过dma将数据搬运到内存上的地址。`union e1000_adv_rx_desc` 是网卡设备硬件规定的描述符格式，将其大小与描述符数量相乘（并4k（页大小）对其）得到所需的dma内存大小，最终通过`dma_alloc_coherent`申请的一致性dma内存（处理器虚拟内存地址空间上的地址）。
+- `rx_ring->rx_buffer_info`是内核使用的内存地址。用于存储数据包元数据，会对应`rx_ring->desc`里的数据包，用于之后`build_skb`使用。
 ``` C
+// file: drivers/net/igb/igb_main.c
 /**
  *  igb_setup_rx_resources - allocate Rx resources (Descriptors)
  *  @rx_ring: Rx descriptor ring (for a specific queue) to setup
@@ -347,8 +384,97 @@ int igb_setup_rx_resources(struct igb_ring *rx_ring)
 	······
 }
 ```
-todo 中断设置
-### uio驱动
+`igb_open`还会调用`igb_request_irq`向操作系统内核注册中断，这里注册两种中断
+1. Message Signaled Interrupts (MSI)-X中断：msi中断是消息标记中断，是pci设备使用的中断。PCI3.0提出了MSI-X，比MSI支持了更多的中断。MSI是指设备通过对特殊地址的写操作，通知CPU中断事件的到来。传统INTx中断可能会有多个设备共享一个中断引脚，同时多个功能也共享一个引脚，当触发中断后，中断处理程序需要查询中断对应的具体设备和具体事件。而MSI中断通过PCIe 内存写入事务（Memory Write TLP） 发送中断消息，每个中断对应唯一的目标地址（Message Address），设备间不共享，而且一个设备可以有中断向量（多个中断）代表不同的中断事件。同时传统中断可能存在设备数据写入内存行为已触发，但未真正写入内存，但中断已经到达的情况，MSI中断都是写内存行为所以可以保证顺序性。
+2. INTx中断：设备通过针脚发送电信号到中断控制器，中断控制器通知CPU中断事件到来。
+```C
+// file: drivers/net/igb/igb_main.c
+/**
+ * igb_request_irq - initialize interrupts
+ *
+ * Attempts to configure interrupts using the best available
+ * capabilities of the hardware and kernel.
+ **/
+static int igb_request_irq(struct igb_adapter *adapter)
+{
+	struct net_device *netdev = adapter->netdev;
+	struct pci_dev *pdev = adapter->pdev;
+	int err = 0;
+
+	if (adapter->msix_entries) {
+		err = igb_request_msix(adapter);
+		if (!err)
+			goto request_done;
+		/* fall back to MSI */
+		igb_clear_interrupt_scheme(adapter);
+		if (!pci_enable_msi(adapter->pdev))
+			adapter->flags |= IGB_FLAG_HAS_MSI;
+		igb_free_all_tx_resources(adapter);
+		igb_free_all_rx_resources(adapter);
+		adapter->num_tx_queues = 1;
+		adapter->num_rx_queues = 1;
+		adapter->num_q_vectors = 1;
+		err = igb_alloc_q_vectors(adapter);
+		if (err) {
+			dev_err(&pdev->dev,
+			        "Unable to allocate memory for vectors\n");
+			goto request_done;
+		}
+		err = igb_alloc_queues(adapter);
+		if (err) {
+			dev_err(&pdev->dev,
+			        "Unable to allocate memory for queues\n");
+			igb_free_q_vectors(adapter);
+			goto request_done;
+		}
+		igb_setup_all_tx_resources(adapter);
+		igb_setup_all_rx_resources(adapter);
+	} else {
+		igb_assign_vector(adapter->q_vector[0], 0);
+	}
+
+	if (adapter->flags & IGB_FLAG_HAS_MSI) {
+		err = request_irq(adapter->pdev->irq, igb_intr_msi, 0,
+				  netdev->name, adapter);
+		if (!err)
+			goto request_done;
+
+		/* fall back to legacy interrupts */
+		igb_reset_interrupt_capability(adapter);
+		adapter->flags &= ~IGB_FLAG_HAS_MSI;
+	}
+
+	err = request_irq(adapter->pdev->irq, igb_intr, IRQF_SHARED,
+			  netdev->name, adapter);
+
+	if (err)
+		dev_err(&adapter->pdev->dev, "Error %d getting interrupt\n",
+			err);
+
+request_done:
+	return err;
+}
+```
+`igb_request_msix`中通过`request_irq`中断注册函数为每个队列注册了中断处理函数`igb_msix_ring`。
+```C
+// file: drivers/net/igb/igb_main.c
+static irqreturn_t igb_msix_ring(int irq, void *data)
+{
+	struct igb_q_vector *q_vector = data;
+
+	/* Write the ITR value calculated from the previous interrupt. */
+	igb_write_itr(q_vector);
+
+	napi_schedule(&q_vector->napi);
+
+	return IRQ_HANDLED;
+}
+```
+todo 如何找到队列的MSI-X中断号以及如何设置/proc/irq/IRQ_NUMBER/smp_affinity
+#### 用户态驱动
+用户态驱动进进行部分初始化，剩余工作交给用户态程序处理。比如不申请dma内存，由用户态根据情况申请。比如DPDK就可以根据网卡的numa affinity 来申请dma内存
+#####  uio驱动
+uio驱动通过`struct uio_info`的`open`函数开启设备，这里也就是`igbuio_pci_open`。
 ```C
 // file: http://dpdk.org/git/dpdk-kmods/linux/igb_uio/igb_uio.c
 static int
@@ -359,9 +485,20 @@ igbuio_pci_probe(struct pci_dev *dev, const struct pci_device_id *id)
 	void *map_addr;
 	int err;
 	······
+	/* fill uio infos */
+	udev->info.name = "igb_uio";
+	udev->info.version = "0.1";
+	udev->info.irqcontrol = igbuio_pci_irqcontrol;
+	udev->info.open = igbuio_pci_open;
+	udev->info.release = igbuio_pci_release;
+	udev->info.priv = udev;
+	udev->pdev = dev;
+	atomic_set(&udev->refcnt, 0);
+	······
 }
 ```
-### vfio驱动
+`igbuio_pci_open`->`igbuio_pci_enable_interrupts`函数中的`pci_enable_msix`使能msix中断（貌似作为传统API不推荐使用了）以及调用`pci_alloc_irq_vectors`分配中断向量。如果在调用`pci_alloc_irq_vectors`函数时，参数`flag`中设置了`PCI_IRQ_AFFINITY`则中断会被分散到可用CPU上。
+##### vfio驱动
 ```C
 // file: drivers\vfio\pci\vfio_pci.c
 static int vfio_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
@@ -418,3 +555,5 @@ static int vfio_pci_probe(struct pci_dev *pdev, const struct pci_device_id *id)
 11. [以太网介绍及硬件设计](https://blog.csdn.net/sinat_15677011/article/details/105470683)
 12. 张彦飞. 深入理解Linux网络: ：修炼底层内功，掌握高性能原理. 北京: 电子工业出版社, 2022.
 13. [ACPI设备树- ACPI命名空间的表示](https://www.cnblogs.com/wanglouxiaozi/p/18720529)
+14. [msi中断](https://docs.kernel.org/translations/zh_CN/PCI/msi-howto.html)
+15. [Dynamic DMA mapping using the generic device](https://www.kernel.org/doc/html/latest/core-api/dma-api.html)
