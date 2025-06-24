@@ -9,8 +9,10 @@
 2. 写保证顺序性: 保证读之前的所有并发的写的结果是代码编写人员期望的末序（最后一个）写入的结果 **（同步）**
 3. 读保证可见性：保证上述写之后的结果对所有并发的读可见 **（同步）**
 为了保证上述特性，我们需要将这一系列读/写操作打包放入 **(原子性)互斥** 的临界区中以保证 **同步**。
+
 ## 1. 单核CPU上的优化导致的多核并发问题
 假设我们希望通过软件实现的方法实现同步原语，部分针对单核的一些优化手段会给同步原语的实现带来更多的挑战。
+
 ### 1.1. 编译优化
 在1970年代，Frances E. Allen和 John Cocke一起提出了一种称为"规则依赖分析"（Dependency Analysis）的编译器优化技术。该技术可以自动识别程序中的数据依赖关系，并利用这些信息在不影响程序执行结果的前提下（eventually consistency），来进行指令重排和其他优化。通过减少数据相关性依赖，使得指令执行时减少（指令流水线中的取存阶段的）等待时间以及提升分支预测准确率。编译优化分为两个方面。
 - 一方面，识别数据依赖关系时，编译器会默认指令访问的内存为当前指令序列独占。这大多数情况下优化的效果是读写操作的压缩，将多次内存的读/写压缩为单次的读/写和计算时的寄存器操作。当多核情况下，就会导致原本在某一个核心A的读/写之间的另一个核心B的读写在指令执行时放到了A读/写之外（**顺序性**被破坏）。
@@ -29,20 +31,30 @@ int lock()
   if (done == 0) while (1);
 }
 ```
-- 另一方面，指令重排会使得编译后的机器指令并不完全按照程序编写人员编写的代码逻辑顺序执行，这部分和指令优化相似不过是层级不同（一个是多条指令的顺序，一个是多条指令中的micro指令的顺寻）。
+- 另一方面，指令重排会使得编译后的机器指令并不完全按照程序编写人员编写的代码逻辑顺序执行，这部分和指令优化相似不过是层级不同（一个是多条指令的顺序，一个是多条指令中的micro指令的顺序）。
+
 #### 1.1.1. 编译优化导致的并发问题解决方法
-主要是打破内存独占的假设，告诉编译器内存可能在指令之间被修改，使得编译器对依赖这部分内存的指令不优化
-插入 “不可优化” 提示代码（相比fence指令代价小）
+因为编译优化是根据数据依赖关系来优化的，只要能让编译器知道使用的数据存在外部依赖，也就是打破变量内存独占的假设，告诉编译器变量是在内存上且可能在指令之间被修改，使得编译器对依赖这部分内存的指令不优化。
+- 方法1：插入 “不可优化” 提示代码（相比fence指令代价小），被称为**compiler barrier 编译屏障**
 ``` C
+// vpp 2502
+// file: src/vppinfra/clib.h
 // “Clobbers memory”
-asm volatile ("" ::: "memory");
+/*
+ * Compiler barrier
+ *   prevent compiler to reorder memory access across this boundary
+ *   prevent compiler to cache values in register (force reload)
+ * Not to be confused with CPU memory barrier below
+ */
+#define CLIB_COMPILER_BARRIER() asm volatile ("":::"memory")
 ```
 - 方法2：标记变量 load/store 为不可优化: 
 ``` C
 // 使用 volatile 变量
-extern int volatile done;
-while (!done) ;
+int volatile done;
+while (!done);
 ```
+
 ### 1.2. 指令优化
 经过编译优化后的指令在处理器上执行。处理器将一部分数据相关性的问题带到硬件设计中解决，通过数据无关的指令并行执行以提高效率。现代乱序处理器中单个逻辑CPU中指令首先被处理器前端译码，并分成多个微指令（Macro-Op）然后被分派到各自的处理管线（port）中执行，cpu中有多条处理管线同时运行，也就是说多条指令在多条流水线上并行执行，指令执行完成顺序变得不可预测（**顺序性**被破坏）。与编译优化类似，乱序执行受限于上述的数据依赖关系，不会影响单核程序执行的结果。但多核场景下，会导致多条读/写指令的**有序性**被破坏。以peterson算法为例
 ``` C
@@ -75,7 +87,7 @@ int thread_func(int thread_index)
   } while (true);
 }
 ```
-在lock函数中，如果按照代码顺序正常执行但存在随机调度的情况下，可以保证两个线程不同时运行临界区的代码（**互斥**）。turn设置为另一个线程的线程id可以保证进步性（process）（防止死锁），同时保证公平性，且保证了最多等一次的有限等待（bounded waiting）（防止饥饿）。看似完美的方案，
+在lock函数中，如果按照代码顺序正常执行但存在随机调度的情况下，可以保证两个线程不同时运行临界区的代码（**互斥**）。turn设置为另一个线程的线程id可以保证进步性（process）（防止死锁），且保证了最多等一次的有限等待（bounded waiting），因为仅作用于两个线程，所以同时保证公平性（防止饥饿）（可以看[mosaic](https://github.com/jiangyy/mosaic)得出的[运行图](pic/peterson.html)）。看似完美的方案，
 但是！
 指令优化会导致问题，由于lock函数中使用的两个共享变量`flag[thread_index]`和`turn`没有实际的数据关联性，导致cpu在进行指令优化时，可能导致真正的读写顺序与代码所写的期望顺序颠倒，导致代码逻辑失效。
 ``` C
@@ -108,15 +120,26 @@ void lock(int thread_index)
 // go into critial section  |     go into critial section
 ```
 #### 1.2.1. 指令优化中的重排序类型
-现代的处理器核可以重排许多内存访问，但讨论两个内存操作的重排序已经足够了。大多数情况下，我们只需要讨论一个核重排序两个不同地址的两个内存操作（因为同一个核上同一个地址的内存操作会因为数据相关的原因不会重排，即保证了单核上的重排优化不影响执行结果）。我们将可能的重排序分解成四种场景。
-##### 1.2.1.1. Store-Store 重排序
-##### 1.2.1.2. Load-Load 重排序
-##### 1.2.1.3. Store-Load 重排序
-##### 1.2.1.4. Load-Store 重排序
-会导致一些错误，比如在释放锁之后去加载一个被锁保护的值（假设store是解锁操作）
+现代的处理器核可以重排许多内存访问，但讨论两个内存操作的重排序已经足够了。大多数情况下，我们只需要讨论单个核重排序两个不同地址的两个内存操作（因为同一个核上同一个地址的内存操作会因为数据相关的原因不会重排，即保证了单核上的重排优化不影响执行结果）。我们将可能的重排序分解成四种场景。
+##### 1.2.1.1. Store-Store 指令重排序
+比如先初始化，然后设置初始化完成的标志
+##### 1.2.1.2. Load-Load 指令重排序
+好像没啥问题
+##### 1.2.1.3. Store-Load 指令重排序
+
+##### 1.2.1.4. Load-Store 指令重排序
+比如在释放锁之后去加载一个被锁保护的值（假设store是解锁操作）
+此时应该加sfence
 
 #### 1.2.2. 指令优化导致的并发问题解决方法
-使用硬件提供的**内存屏障指令**（栅栏FENCE指令）。
+使用硬件提供的**处理器屏障指令**（栅栏FENCE指令）（因为内存屏障某种程度来说是包含了处理器屏障的功能，有些处理器上处理器屏障指令和内存屏障指令不做区分）。
+``` C
+// linux-6.15.3
+// file: tools/arch/x86/include/asm/barrier.h
+#define mb()	asm volatile("mfence" ::: "memory")
+#define rmb()	asm volatile("lfence" ::: "memory")
+#define wmb()	asm volatile("sfence" ::: "memory")
+```
 屏障指令可以保证在屏障之前的操作执行先完成，屏障之后的操作再执行（对后面提到的缓存优化也有用）。
 ``` C
 // 通过以下修改保证读写顺序，即保证flag[thread_index]的写操作完成在先，对flag[1-thread_index]的读在后
@@ -127,7 +150,7 @@ void lock(int thread_index)
 {
   flag[thread_index] = true;
   turn = 1 - thread_index;
-  // 内存屏障指令 （事实上就是mfence, lfence, sfence）
+  // 下面是编译器的build-in函数，（事实上就是mfence, lfence, sfence）
   __sync_synchronize();
 
   while (flag[1-thread_index] && turn == 1-thread_index);
@@ -135,7 +158,7 @@ void lock(int thread_index)
 
 ```
 ### 1.3. 缓存优化
-上面提到的两个优化的导致的问题都是由于冯诺依曼模型中CPU指令执行的顺序乱序导致的，还未涉及内存一致性问题。其解决方案也都是在[内存顺序一致性模型](#参考7)的前提下有效的。
+上面提到的两个优化的导致的问题都是由于冯诺依曼模型中CPU指令执行的顺序乱序导致的，还未涉及多核内存一致性问题。其解决方案也都是在[内存顺序一致性模型](#参考7)的前提下有效的。
 ![sequential consistency model](./pic/sequential_consistency_mem_model.png)
 #### 1.3.1. 内存一致性模型
 内存一致性模型，或简称内存模型。上述提到了的内存顺序一致性模型就是其中一种。内存模型是一个规范，指明了使用共享内存执行的多线程程序所被允许的行为，目的是为了精确定义
@@ -160,6 +183,7 @@ void func_on_core_2()
 }
 ```
 下面根据例程A介绍几个常见的内存模型
+
 ##### 1.3.1.1. 内存顺序一致性模型（SC）
 内存顺序一致性模型，即程序顺序与内存顺序一致模型，是最理想情况下的内存模型（MIPS R10000使用的此类内存模型），从硬件角度看可以类比于所有的处理器直接连接到一块共享的每次只允许一个处理器读/写的内存上且处理器和共享内存间没有cache。
 - 每次任意一个处理器对共享内存上的读，直接从共享内存读。
@@ -176,7 +200,9 @@ Store->Load:  if S(a) <p L(b) then S(a) <m L(b)
 2. 每个load操作获取的值来自其 **<m** 序列中向前最近一次的store结果
 3. 顺序一致性模型在下表中的这些内存操作必须要按照内存顺序执行（其中RMW是原子读-改-写指令，如test-and-set）
 ![sc constrict table](./pic/sequential_consistency_constrict_table.png)
->就是说对于例程A来说，是不可能出现输出"0 0"的结果的，可以用[Model Check](https://github.com/jiangyy/mosaic)验证
+
+> 就是说对于例程A来说，是不可能出现输出"0 0"的结果的，可以用[Model Check](https://github.com/jiangyy/mosaic)验证
+
 ##### 1.3.1.2. x86 Total Store Order(x86-TSO)
 ![x86 TSO](./pic/x86_tso_model.png)
 为了加速性能，硬件上在CPU和内存间多了一个FIFO的local write queue（a write back cache \ write buffer）。因为实际上大多数情况并不需要保证Store->Load情况下的顺序一致性，所以这部分硬件上的小改动使得在TSO相比SC有了更优秀的性能。
@@ -208,12 +234,15 @@ FENCE->FENCE: if FENCE <p FENCE then FENCE <m FENCE
 2. 每个load操作获取的值来自其 **<m** 序列中向前最近一次的store结果
 3. TSO在下表中的有X的内存操作必须要按照程序顺序执行
 ![tso ops](./pic/tso_constrict_table.png)
->可以在实际中验证，会出现输出"0 0"
+
+> 可以在实际中验证，会出现输出"0 0"
+
 ##### 1.3.1.3. Relaxed Memory Consistency
 进一步说，大多数场景下多核的读/写操作并不需要保证顺序一致性，也就是说可以进一步放开内存模型的约束来加速性能，宽松内存模型也因此出现。其要求程序员通过显式的要求来保证少数场景下的顺序一致性。
 举一个并发编程中常用的锁使用的例程B
 ![Relaxed Memory Consistency example B](./pic/Relaxed_memory_consistency_exampleB.png)
 这是使用锁实现临界区互斥，期望的程序顺序和内存顺序是`ALL L1i, ALL S1j -> R1 -> A2 -> ALL L2i, ALL S2j`，假定临界区内部的load/store只要考虑好操作间的数据依赖关系，可以根据任意顺序执行（临界区内退化为单核模型）。这样的假设的缘由是临界区内部的操作比锁的acquire和release要频繁，如果减少对临界区内部read/store的约束可以进一步提高性能。
+
 ###### 1.3.1.3.1. eXample relaxed Consistency model（XC）
 为了教学目的，在[A Primer On Memory Consistency And Cache Coherence](#参考6)一书中介绍了一个eXample relaxed Consistency model（XC）
 XC提供了一个FENCE指令，使得在FENCE前的指令必定在FENCE前完成，FENCE后的指令必定在FENCE后开始。
@@ -241,13 +270,33 @@ Power提供了一个表面上和XC相似的松散模型，但有很多重要的�
 1. Power中的store操作的执行会关注于其它core，不是memory。因此，Power不保证和XC创建出一样的总内存顺序( < m )
 2. Power里的一些FENCE被定义为可累积的（cumulative）。
 3. Power有三类FENCE（还有更多类型用于I/O内存），XC只有一种FENCE。意味在有更细分的FENCE指令的控制之下，会有更好的性能。
+
 ###### 1.3.1.3.3. ARM
 ARM提供了一个核心思想接近于IBM Power的内存模型。和Power类似，
 1. 它看起来并不保证有一个总内存顺序。
 2. ARM有多种风格的FENCE，包括一个数据内存barrier，能够排序所有内存访问或只排序store操作，一个和Power的ISYNC类似的指令同步barrier，还有其它的用于I/O操作的FENCE。
 
 #### 1.3.2. 缓存优化导致的并发问题解决方法
-使用硬件提供的**内存屏障指令**（栅栏FENCE指令）。
+使用硬件提供的**内存屏障指令**，因为内存屏障某种程度来说是包含了处理器屏障的功能，有些处理器上处理器屏障指令和内存屏障指令不做区分，比如arm64平台。
+下面代码可以看到x86_64平台的`smp_rmb`和`smp_wmb`简单实现为编译屏障，因为x86_64平台是上述的TSO内存模型，天然保证了read-read/write-write的顺序性。而`smp_mb`则负责保证
+``` C
+// linux-6.15.3
+// file: tools/arch/x86/include/asm/barrier.h
+#define smp_rmb() barrier()
+#define smp_wmb() barrier()
+#define smp_mb()  asm volatile("lock; addl $0,-132(%%rsp)" ::: "memory", "cc")
+
+// file: tools/arch/arm64/include/asm/barrier.h
+/*
+ * Kernel uses dmb variants on arm64 for smp_*() barriers. Pretty much the same
+ * implementation as above mb()/wmb()/rmb(), though for the latter kernel uses
+ * dsb. In any case, should above mb()/wmb()/rmb() change, make sure the below
+ * smp_*() don't.
+ */
+#define smp_mb()	asm volatile("dmb ish" ::: "memory")
+#define smp_wmb()	asm volatile("dmb ishst" ::: "memory")
+#define smp_rmb()	asm volatile("dmb ishld" ::: "memory")
+```
 
 ## 2. 无数据竞争（Data Race Free）程序
 多核并发编程要想获得上述这些性能优化手段的同时要避免顺序一致性导致的程序错误，最好的手段就是实现无数据竞争程序。
