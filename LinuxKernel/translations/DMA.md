@@ -1,5 +1,5 @@
 # Dynamic DMA mapping using the generic device  动态DMA映射
-此文档介绍了DMA API。如需对API更通俗的介绍可以参考[动态DMA映射指南](https://www.kernel.org/doc/html/latest/core-api/dma-api-howto.html)
+此文档介绍了DMA API。如需对API更通俗易懂的介绍可以参考[动态DMA映射指南](https://www.kernel.org/doc/html/latest/core-api/dma-api-howto.html)
 
 DMA API和此文档被分成了两部分。文档第一部分将介绍基本API。第二部分则会介绍API中支持不一致内存计算机的部分。除非您知道你的驱动程序必须要支持不一致内存的平台（通常来说是一些遗留平台），否则您应该只使用第一部分介绍的基本API。
 
@@ -26,7 +26,15 @@ dma_free_coherent(struct device *dev, size_t size, void *cpu_addr,
 ```
 释放已分配的DMA一致性内存区域。参数`dev`、`size`、`dma_handle`参数必须和`dma_alloc_coherent()`传入的时候相同。参数`cpu_addr`必须和`dma_alloc_coherent()`返回的虚拟内存地址相同
 ### Part Ib - Using small DMA-coherent buffers 使用小容量DMA一致性缓存
-todo
+要使用这部分dma_API，您必须#include <linux/dmapool.h>
+不少驱动程序的DMA描述符或者I/O缓存需要大量的小容量DMA一致性内存。这种情况下，可以不用dma_alloc_coherent()，转而使用DMA内存池。DMA内存池的工作原理与struct kmem_cache十分相似，只不过DMA内存池使用了DMA一致性分配器，而struct kmem_cache使用了__get_free_pages()。另外，DMA池可以处理常见的硬件对齐要求，比如队列头需要与N字节边界对齐。
+```C
+struct dma_pool *
+dma_pool_create(const char *name, struct device *dev,
+                size_t size, size_t align, size_t alloc);
+```
+`dma_pool_create()`为给定的设备初始化了一个DMA一致性缓存池。这个接口必须要在可休眠的上下文中被调用。
+"name"参数用于调试排错（类似于struct kmem_cache的name）；dev和size参数和dma_alloc_coherent()中的含义相同。"align"参数用于传递设备硬件的对齐要求（以字节为单位，而且必须是2的幂次方）。如果您的设备没有跨边界限制时，alloc参数在为0；如果需要DMA池分配的内存不得跨越4KB边界，则alloc参数为4096。
 ### Part Ic - DMA addressing limitations DMA寻址限制
 ```C
 int
