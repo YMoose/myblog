@@ -97,7 +97,9 @@ PCIe枚举后，内核可以得到设备MMIO使用的PA地址**B**，然后通�
 [    1.410902] pci 0000:00:04.7: reg 0x10: [mem 0x383ffff10000-0x383ffff13fff 64bit]
 ```
 ![ECAM](pics/ecam.png)
+
 > 上述流程是在服务器端的一般情况，因为服务器端用户对不同硬件的兼容性上有需求，UEFI+ACPI的生态已经相对完善，实现也相对灵活。在ARM嵌入式端则采用了设备树（DeviceTree）的方式对设备进行枚举。另外有些设备不支持ECAM机制需要能通过I/O-based (CF8/CFC mechanism)来访问PCI设备配置空间.
+
 ![Type 0 Configuration Space Header](pics/pcie-configuration-space-header-type-0.png)
 ![Type 1 Configuration Space Header](pics/pcie-configuration-space-header-type-1.png)
 配置空间中的BAR（Base Address Register）用于描述不同的内存空间或者IO空间的地址基址和范围（为了描述不同类型的地址空间，这里的地址不是单纯的指针，有特定结构），BAR的值最初也是由BIOS配置， 设备和系统通过一个握手协议对BAR进行多次读写来协商基址和范围，具体的值可以通过`lspci -vv`查看。

@@ -205,7 +205,7 @@ Store->Load:  if S(a) <p L(b) then S(a) <m L(b)
 
 ##### 1.3.1.2. x86 Total Store Order(x86-TSO)
 ![x86 TSO](./pic/x86_tso_model.png)
-为了加速性能，硬件上在CPU和内存间多了一个FIFO的local write queue（a write back cache \ write buffer）。因为实际上大多数情况并不需要保证Store->Load情况下的顺序一致性，所以这部分硬件上的小改动使得在TSO相比SC有了更优秀的性能。
+为了加速性能，硬件上在CPU和内存间多了一个FIFO的local write queue（a write back cache \ write buffer \ store buffer）。因为实际上大多数情况并不需要保证Store->Load情况下的顺序一致性，所以这部分硬件上的小改动使得在TSO相比SC有了更优秀的性能。
 > 实现上，微架构能够在物理上将store queue（未提交的store操作）和write buffer（已提交的store操作）组合到一起，并且/或者物理上独立出load和store queue。
 使得读\写操作变得如下
 - 每次任意一个处理器对共享内存上的读，先从local write queue查看是否存在，存在直接读local write queue，不存在则从共享内存读。
@@ -237,6 +237,8 @@ FENCE->FENCE: if FENCE <p FENCE then FENCE <m FENCE
 
 > 可以在实际中验证，会出现输出"0 0"
 
+##### 1.3.1.2.5 Part Store Order
+// todo
 ##### 1.3.1.3. Relaxed Memory Consistency
 进一步说，大多数场景下多核的读/写操作并不需要保证顺序一致性，也就是说可以进一步放开内存模型的约束来加速性能，宽松内存模型也因此出现。其要求程序员通过显式的要求来保证少数场景下的顺序一致性。
 举一个并发编程中常用的锁使用的例程B

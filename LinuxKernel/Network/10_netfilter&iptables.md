@@ -121,6 +121,73 @@ iptables -I FORWARD -j LOG --log-prefix "FORWARD-DEBUG: " --log-level 4 -p tcp -
 iptables -t nat -I POSTROUTING -j LOG --log-prefix "POSTROUTING-DEBUG: " --log-level 4 -p tcp -d <服务地址:10.20.152.181> --dport <服务端口:12345>
 iptables -I FORWARD -j LOG --log-prefix "RFORWARD-DEBUG: " --log-level 4 -p tcp -s <服务地址:10.20.152.181> --sport <服务端口:12345>
 ```
+#### 记一次docker容器网络排障
+起因是我们的产品客户需要软件部署，我们的产品通过容器部署上后，外部网络无法访问容器内服务。先在本机尝试访问服务，可以访问，排除服务自身问题。再通过抓包查看外部网络请求是否到达，发现有syn到达，但没有建立连接，排除外部网络问题。怀疑是服务器内部网络策略导致。查看iptables，存在大量规则。
+``` bash
+# 查看是否进入内核网络栈
+iptables -t raw -I PREROUTING 1 -j LOG --log-prefix "RAW_PREROUTING:" --log-level 4 -p tcp --dport 19000
+```
+发现日志中存在请求包日志，说明数据包进入了内核网络栈
+``` bash
+# 删除之前的日志调试规则
+iptables -t raw -D PREROUTING 1
+# 查看是否进入后续表
+iptables -t mangle -I PREROUTING 1 -j LOG --log-prefix "MANGLE_PREROUTING:" --log-level 4 -p tcp --dport 19000
+iptables -t nat -I PREROUTING 1 -j LOG --log-prefix "NAT_PREROUTING:" --log-level 4 -p tcp --dport 19000
+```
+发现日志中存在请求包日志，没啥问题（19000是外部端口，docker服务端口是8080）
+``` bash
+# 删除之前的日志调试规则
+iptables -t mangle -D PREROUTING 1
+iptables -t nat -D PREROUTING 1
+# 查看是否进入INPUT
+iptables -t filter -I INPUT 1 -j LOG --log-prefix "FILTER_INPUT:" --log-level 4 -p tcp --dport 8080
+```
+这里我的理解有点问题，我以为本机上的容器网络是走INPUT进入的，但其实这里是命中了nat:PREROUTING链中DOCKER子链的DNAT规则，数据包被修改了目的地址端口，在经过路由决策时发现不是本机IP。因为容器使用的是默认bridge网络模式，主要用于同一主机上的容器互相通信，连接到同一个网桥的docker容器可以通信。除非特殊指定网络，容器创建时会默认创建veth pair（虚拟以太网设备对），一头放在容器内部，一头连接到docker0网桥。也可以自行创建docker网络，会新生成网桥设备，并指定容器连接到此网桥。bridge对于宿主机来说，就是一张网卡设备，对于容器来说就是一个交换机。
+``` bash
+# 查看docker0 虚拟网桥
+[root@localhost ~]# ip addr show docker0
+8: docker0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:be:14:64:74 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.1/16 brd 172.17.255.255 scope global docker0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:beff:fe14:6474/64 scope link 
+       valid_lft forever preferred_lft forever
+# 查看docker网络
+[root@localhost ~]# docker network ls
+NETWORK ID     NAME              DRIVER    SCOPE
+bf99d5ae11f6   acsf-network      bridge    local
+316bb5cef653   bridge            bridge    local
+0a157e15ba79   gateway_default   bridge    local
+7640cf641a9b   hn-network        bridge    local
+ede448d89ba7   host              host      local
+7a79ed964b90   none              null      local
+fe4019443db8   traefik_default   bridge    local
+c019ff6745d3   update_default    bridge    local
+# 查看
+[root@localhost ~]# ip addr show br-bf99d5ae11f6
+462: br-bf99d5ae11f6: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default 
+    link/ether 02:42:d2:b5:d1:fc brd ff:ff:ff:ff:ff:ff
+    inet 172.28.0.1/16 brd 172.28.255.255 scope global br-bf99d5ae11f6
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:d2ff:feb5:d1fc/64 scope link 
+       valid_lft forever preferred_lft forever
+```
+所以，路由决策时发现是网桥（另一张网卡）的IP，走FORWARD链。
+``` bash
+iptables -t filter -D INPUT 1
+# 查看是否进入FORWARD
+iptables -t mangle -I FORWARD 1 -j LOG --log-prefix "MANGLE_FORWARD:" --log-level 4 -p tcp --dport 8080
+iptables -t filter -I FORWARD 1 -j LOG --log-prefix "FILTER_FORWARD:" --log-level 4 -p tcp --dport 8080
+```
+发现日志中存在请求包日志，没啥问题。查看POSTROUTING链
+``` bash
+iptables -t filter -D INPUT 1
+# 查看是否进入POSTROUTING
+iptables -t mangle -I POSTROUTING 1 -j LOG --log-prefix "MANGLE_POSTROUTING:" --log-level 4 -p tcp --dport 8080
+iptables -t nat -I POSTROUTING 1 -j LOG --log-prefix "NAT_POSTROUTING:" --log-level 4 -p tcp --dport 8080
+```
+都没有，基本确定是在filter:FORWARD中被丢弃，仔细查看filter:FORWARD链，确实存在丢弃规则命中。因客户现场其他原因无法修改规则，通过修改内部服务端口规避后，服务可以正常访问。
 ## conntrack
 conntrack是netfilter中的一个子模块，其具体处理函数是也是通过`nf_register_hook()/nf_register_hooks() (net/netfilter/core.c)`注册，并通过priority保证conntrack的hook执行在相对靠前的位置，因为conntrack的逻辑保证了其不会修改数据包，仅可能丢弃数据包，不会影响后续hook函数的执行。
 可以通过如下命令查看系统中连接的连接状态
@@ -129,7 +196,6 @@ conntrack -L # 列出所有连接信息及其状态
 cat /proc/net/nf_conntrack # 与上一条命令相同
 cat /proc/net/stat/nf_conntrack # 连接状态统计
 conntrack -S # 根据CPU统计
-
 ```
 
 ## 参考
