@@ -238,7 +238,11 @@ FENCE->FENCE: if FENCE <p FENCE then FENCE <m FENCE
 > 可以在实际中验证，会出现输出"0 0"
 
 ##### 1.3.1.2.5 Part Store Order
+https://zhuanlan.zhihu.com/p/125549632
+Store Forwarding
+Invalid Queue
 // todo
+// 分离的写屏障和读屏障的出现，是为了更加精细地控制 Store Buffer 和 Invalid Queue 的顺序。
 ##### 1.3.1.3. Relaxed Memory Consistency
 进一步说，大多数场景下多核的读/写操作并不需要保证顺序一致性，也就是说可以进一步放开内存模型的约束来加速性能，宽松内存模型也因此出现。其要求程序员通过显式的要求来保证少数场景下的顺序一致性。
 举一个并发编程中常用的锁使用的例程B
