@@ -89,7 +89,7 @@ int thread_func(int thread_index)
 ```
 在lock函数中，如果按照代码顺序正常执行但存在随机调度的情况下，可以保证两个线程不同时运行临界区的代码（**互斥**）。turn设置为另一个线程的线程id可以保证进步性（process）（防止死锁），且保证了最多等一次的有限等待（bounded waiting），因为仅作用于两个线程，所以同时保证公平性（防止饥饿）（可以看[mosaic](https://github.com/jiangyy/mosaic)得出的[运行图](pic/peterson.html)）。看似完美的方案，
 但是！
-指令优化会导致问题，由于lock函数中使用的两个共享变量`flag[thread_index]`和`turn`没有实际的数据关联性，导致cpu在进行指令优化时，可能导致真正的读写顺序与代码所写的期望顺序颠倒，导致代码逻辑失效。
+指令优化会导致问题，由于lock函数中使用的两个共享变量`flag[thread_index]`和`turn`没有实际的数据关联性，导致cpu在进行指令优化(乱序执行)时，可能导致真正的读写顺序与代码所写的期望顺序颠倒，导致代码逻辑失效。
 ``` C
 // lock函数中未经指令优化的期望的读写顺序
 void lock(int thread_index)
@@ -120,27 +120,54 @@ void lock(int thread_index)
 // go into critial section  |     go into critial section
 ```
 #### 1.2.1. 指令优化中的重排序类型
-现代的处理器核可以重排许多内存访问，但讨论两个内存操作的重排序已经足够了。大多数情况下，我们只需要讨论单个核重排序两个不同地址的两个内存操作（因为同一个核上同一个地址的内存操作会因为数据相关的原因不会重排，即保证了单核上的重排优化不影响执行结果）。我们将可能的重排序分解成四种场景。
+现代的处理器核可以重排许多内存访问，但讨论两个内存操作的重排序已经足够了。大多数情况下，我们只需要讨论单个核重排序两个不同地址的两个内存操作的情况（因为同一个核上同一个地址的内存操作会因为数据相关的原因不会重排，即保证了单核上的重排优化不影响执行结果）。
+我们将可能的重排序分解成四种场景。这四种场景也是后续内存一致性模型要讨论的内容。这是重排序问题的两个层次，第一是load/store指令执行顺序的问题，第二个是假设在当前load/store指令执行顺序没有问题的前提下，指令执行的（结果的）顺序被对另外的核来说是否也是一致的。
 ##### 1.2.1.1. Store-Store 指令重排序
-比如先初始化，然后设置初始化完成的标志
-##### 1.2.1.2. Load-Load 指令重排序
-好像没啥问题
-##### 1.2.1.3. Store-Load 指令重排序
+比如先初始化，然后设置初始化完成的标志。两个变量是不同内存地址，会有乱排可能。
+``` C
+int x = 0;
+int init = 0;
 
+void thread1()
+{
+  x = 1;    // store-store 乱序，导致init已经为1但打印x时可能仍为0
+  init = 1;
+}
+
+void thread2()
+{
+  while(init == 0); // load-load 乱序，导致先打印x时还未完成初始化。
+  print(x);
+}
+```
+##### 1.2.1.2. Load-Load 指令重排序
+有和Store-Store 乱序同样的问题
+##### 1.2.1.3. Store-Load 指令重排序
+上述peterson算法的问题就是Store-Load 指令重排序导致的
 ##### 1.2.1.4. Load-Store 指令重排序
+``` C
+int x = 0;
+int lock = LOCKED;
+int ret = -1;
+
+void thread1()
+{
+  x = 1;
+  lock = UNLOCKED;
+}
+
+void thread2()
+{
+  while(init == LOCKED); // load
+  ret = x; // store
+}
+```
 比如在释放锁之后去加载一个被锁保护的值（假设store是解锁操作）
-此时应该加sfence
+此时应该在thread2的store前加lfence
 
 #### 1.2.2. 指令优化导致的并发问题解决方法
-使用硬件提供的**处理器屏障指令**（栅栏FENCE指令）（因为内存屏障某种程度来说是包含了处理器屏障的功能，有些处理器上处理器屏障指令和内存屏障指令不做区分）。
-``` C
-// linux-6.15.3
-// file: tools/arch/x86/include/asm/barrier.h
-#define mb()	asm volatile("mfence" ::: "memory")
-#define rmb()	asm volatile("lfence" ::: "memory")
-#define wmb()	asm volatile("sfence" ::: "memory")
-```
-屏障指令可以保证在屏障之前的操作执行先完成，屏障之后的操作再执行（对后面提到的缓存优化也有用）。
+刚刚说了指令优化的问题是叠加了内存一致性的问题的，所以解决方案放到后续缓存优化的解决方案中一并给出。
+针对peterson的问题，解决方案如下
 ``` C
 // 通过以下修改保证读写顺序，即保证flag[thread_index]的写操作完成在先，对flag[1-thread_index]的读在后
 int turn;
@@ -155,11 +182,11 @@ void lock(int thread_index)
 
   while (flag[1-thread_index] && turn == 1-thread_index);
 }
-
 ```
 ### 1.3. 缓存优化
 上面提到的两个优化的导致的问题都是由于冯诺依曼模型中CPU指令执行的顺序乱序导致的，还未涉及多核内存一致性问题。其解决方案也都是在[内存顺序一致性模型](#参考7)的前提下有效的。
 ![sequential consistency model](./pic/sequential_consistency_mem_model.png)
+而多核系统中，为了进一步加速单核对内存访问的速率，设计了多级cache，这样的设计带来了另一个问题，对相同的内存地址可能映射到了不同的核的cache上，而不同的核的内存读写操作可能导致其cache上的数据不一致，也就是说，相同的内存地址，不同的核看到的内存不一致，这个问题就是内存一致性问题。也就是上文提到的，假设在当前load/store指令执行顺序没有问题的前提下，指令执行的（结果的）顺序被对另外的核来说是否也是一致的。你也可以理解为内存状态机，在某一刻时，不同核的视角来看是不同的。
 #### 1.3.1. 内存一致性模型
 内存一致性模型，或简称内存模型。上述提到了的内存顺序一致性模型就是其中一种。内存模型是一个规范，指明了使用共享内存执行的多线程程序所被允许的行为，目的是为了精确定义
    - 编程者能够期望什么行为 
@@ -167,21 +194,42 @@ void lock(int thread_index)
 我们采用Weaver和Germond的形式化语言，使用如下符号：**L(a)** 和 **S(a)** 表示一次load和一次store操作，这两个操作作用到一个地址a。顺序符号 **<p** 和 **<m** 定义了程序和全局内存顺序。程序顺序 **<p** 是一个单核总顺序，此顺序和每个核逻辑（顺序）执行的内存操作顺序是一致的。全局内存顺序 **<m** 是所有核的内存操作的总顺序。
 假设有如下例程A
 ``` C
-int x = 0;
-int y = 0;
+#include <unistd.h>
+#include <pthread.h>
 
-void func_on_core_1()
+char x = 'a';
+char y = 'b';
+char str[3] = "ab";
+pthread_t ntid1;
+pthread_t ntid2;
+
+void* func_on_core_1(void* v)
 {
-  x = 1;
-  print(y);
+  x = 'X';      // 1-1 store
+  char c1 = y;  // 1-2 load
+  str[1] = c1;  // 1-3 store
+  return NULL;
 }
 
-void func_on_core_2()
+void* func_on_core_2(void* v)
 {
-  y = 1;
-  print(x);
+  y = 'Y';      // 2-1 store
+  char c2 = x;  // 2-2 load
+  str[0] = c2;  // 2-3 store
+  return NULL;
+}
+
+int main()
+{
+    pthread_create(&ntid1,NULL, func_on_core_1, NULL);
+    pthread_create(&ntid2,NULL, func_on_core_2, NULL);
+    pthread_join(ntid1, NULL);
+    pthread_join(ntid2, NULL);
+    write(STDOUT_FILENO, &str, 2);
+    return 0;
 }
 ```
+例程A中1-2和1-3（2-2和2-3同样）指令的执行顺序是保证的，因为两条指令存在数据依赖。
 下面根据例程A介绍几个常见的内存模型
 
 ##### 1.3.1.1. 内存顺序一致性模型（SC）
@@ -235,7 +283,32 @@ FENCE->FENCE: if FENCE <p FENCE then FENCE <m FENCE
 3. TSO在下表中的有X的内存操作必须要按照程序顺序执行
 ![tso ops](./pic/tso_constrict_table.png)
 
-> 可以在实际中验证，会出现输出"0 0"
+对于例程A来说，使用了x86跑了40000次得出结果如下
+``` C
+[root@localhost test]# lscpu
+Architecture:          x86_64
+CPU op-mode(s):        32-bit, 64-bit
+Byte Order:            Little Endian
+CPU(s):                72
+On-line CPU(s) list:   0-71
+Thread(s) per core:    2
+Core(s) per socket:    18
+座：                 2
+NUMA 节点：         2
+厂商 ID：           GenuineIntel
+CPU 系列：          6
+型号：              85
+型号名称：        Intel(R) Xeon(R) Gold 6240 CPU @ 2.60GHz
+···
+[root@localhost test]# ./test.sh | sort | uniq -c
+     59 aY
+  19940 Xb
+      1 XY
+[root@localhost test]# ./test.sh | sort | uniq -c
+      1 ab
+     75 aY
+  19924 Xb
+```
 
 ##### 1.3.1.2.5 Part Store Order
 https://zhuanlan.zhihu.com/p/125549632
@@ -282,12 +355,40 @@ ARM提供了一个核心思想接近于IBM Power的内存模型。和Power类似
 1. 它看起来并不保证有一个总内存顺序。
 2. ARM有多种风格的FENCE，包括一个数据内存barrier，能够排序所有内存访问或只排序store操作，一个和Power的ISYNC类似的指令同步barrier，还有其它的用于I/O操作的FENCE。
 
+对于例程A来说，使用了ARM跑了100000次得出结果如下
+``` bash
+[root@home]# lscpu
+Architecture:                    aarch64
+CPU op-mode(s):                  64-bit
+Byte Order:                      Little Endian
+CPU(s):                          64
+On-line CPU(s) list:             0-63
+Thread(s) per core:              1
+Core(s) per socket:              32
+Socket(s):                       2
+NUMA node(s):                    4
+Vendor ID:                       HiSilicon
+Model:                           0
+Model name:                      Kunpeng-920
+···
+[root@home]# ./t.sh | sort | uniq -c
+      3 ab
+    376 aY
+  99620 Xb
+      1 XY
+```
+
 #### 1.3.2. 缓存优化导致的并发问题解决方法
 使用硬件提供的**内存屏障指令**，因为内存屏障某种程度来说是包含了处理器屏障的功能，有些处理器上处理器屏障指令和内存屏障指令不做区分，比如arm64平台。
-下面代码可以看到x86_64平台的`smp_rmb`和`smp_wmb`简单实现为编译屏障，因为x86_64平台是上述的TSO内存模型，天然保证了read-read/write-write的顺序性。而`smp_mb`则负责保证
+下面代码可以看到x86_64平台的`smp_rmb`和`smp_wmb`简单实现为编译屏障，因为x86_64平台是上述的TSO内存模型，天然保证了read-read/write-write的顺序性。而`smp_mb`则进一步保证了完全的顺序性（Total Order）
+目前`smp_mb`在x86_64平台下的实现，是通过`lock`指令前缀实现的，这种指令自带一个`mfence`的功能，而且通过锁总线保证了操作的原子性。lfence 和 sfence因为需要控制的指令种类少，所以比mfence代价更小一些。
 ``` C
 // linux-6.15.3
 // file: tools/arch/x86/include/asm/barrier.h
+// 这里barrier实际就是个编译器屏障
+#define mb()	asm volatile("mfence" ::: "memory")
+#define rmb()	asm volatile("lfence" ::: "memory")
+#define wmb()	asm volatile("sfence" ::: "memory")
 #define smp_rmb() barrier()
 #define smp_wmb() barrier()
 #define smp_mb()  asm volatile("lock; addl $0,-132(%%rsp)" ::: "memory", "cc")
@@ -304,6 +405,11 @@ ARM提供了一个核心思想接近于IBM Power的内存模型。和Power类似
 #define smp_rmb()	asm volatile("dmb ishld" ::: "memory")
 ```
 
+我们来看看内核`kfifo`中的使用场景
+``` C
+// todo
+// file:
+```
 ## 2. 无数据竞争（Data Race Free）程序
 多核并发编程要想获得上述这些性能优化手段的同时要避免顺序一致性导致的程序错误，最好的手段就是实现无数据竞争程序。
 无数据竞争程序的中有两种操作，其实质都是对共享数据的读写，但是根据共享数据的用途不同，分为
