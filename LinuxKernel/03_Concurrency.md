@@ -405,10 +405,47 @@ Model name:                      Kunpeng-920
 #define smp_rmb()	asm volatile("dmb ishld" ::: "memory")
 ```
 
-我们来看看内核`kfifo`中的使用场景
+我们来看看内核kfifo中的内存屏障的使用场景，重点就是确保数据搬运（store操作）完成后，再对fifo队列的头尾位置进行更新（store操作），`smp_wmb`的目的就是保证Store-Store操作的内存顺序一致性。
 ``` C
-// todo
-// file:
+// linux-6.15.4
+// file: lib/kfifo.c
+static void kfifo_copy_in(struct __kfifo *fifo, const void *src,
+		unsigned int len, unsigned int off)
+{
+	unsigned int size = fifo->mask + 1;
+	unsigned int esize = fifo->esize;
+	unsigned int l;
+
+	off &= fifo->mask;
+	if (esize != 1) {
+		off *= esize;
+		size *= esize;
+		len *= esize;
+	}
+	l = min(len, size - off);
+
+	memcpy(fifo->data + off, src, l);
+	memcpy(fifo->data, src + l, len - l);
+	/*
+	 * make sure that the data in the fifo is up to date before
+	 * incrementing the fifo->in index counter
+	 */
+	smp_wmb();
+}
+
+unsigned int __kfifo_in(struct __kfifo *fifo,
+		const void *buf, unsigned int len)
+{
+	unsigned int l;
+
+	l = kfifo_unused(fifo);
+	if (len > l)
+		len = l;
+
+	kfifo_copy_in(fifo, buf, len, fifo->in);
+	fifo->in += len;
+	return len;
+}
 ```
 ## 2. 无数据竞争（Data Race Free）程序
 多核并发编程要想获得上述这些性能优化手段的同时要避免顺序一致性导致的程序错误，最好的手段就是实现无数据竞争程序。
