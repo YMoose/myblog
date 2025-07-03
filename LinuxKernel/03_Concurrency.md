@@ -4,7 +4,7 @@
 ![多核冯·诺伊曼结构](./pic/multicores_Von_Neumann_Architecture.svg)
 多核情况下，CPU们共享内存（现代cpu上内存的含义被进一步拓展为多级缓存，这里的指的共享内存不包括cpu本地缓存（L1Cache），包括但不限于多cpu共享缓存(L3Cache)）。在对共享内存的读写操作上，多核心计算机在计算过程中需要保证以下一致性，防止竞争条件（race condition）的发生，以达到和单核相同的计算正确性。而讨论正确性的时候可以将其划分为两个子问题
 - memory consistency: 内存一致性问题包含了内存读写操作的规则 
-- cache coherence：缓存一致性问题是支持内存一致性的组成部分之一。其目的是让硬件cache在对共享内存的读写操作没有任何影响，就和没有cache是一样的。问题的主要由硬件工程师解决，不在本文中做重点讨论（多线程程序中伪共享导致的性能问题就是缓存一致性协议带来的）。
+- cache coherence：缓存一致性问题是支持内存一致性的组成部分之一。其目的是让硬件cache的存在对共享内存的读写操作没有任何影响，就和没有cache是一样的。
 1. 读/写都有原子性：读/写在执行完成前都不可能有另一个读/写生效 **（互斥）**
 2. 写保证顺序性: 保证读之前的所有并发的写的结果是代码编写人员期望的末序（最后一个）写入的结果 **（同步）**
 3. 读保证可见性：保证上述写之后的结果对所有并发的读可见 **（同步）**
@@ -120,8 +120,8 @@ void lock(int thread_index)
 // go into critial section  |     go into critial section
 ```
 #### 1.2.1. 指令优化中的重排序类型
-现代的处理器核可以重排许多内存访问，但讨论两个内存操作的重排序已经足够了。大多数情况下，我们只需要讨论单个核重排序两个不同地址的两个内存操作的情况（因为同一个核上同一个地址的内存操作会因为数据相关的原因不会重排，即保证了单核上的重排优化不影响执行结果）。
-我们将可能的重排序分解成四种场景。这四种场景也是后续内存一致性模型要讨论的内容。这是重排序问题的两个层次，第一是load/store指令执行顺序的问题，第二个是假设在当前load/store指令执行顺序没有问题的前提下，指令执行的（结果的）顺序被对另外的核来说是否也是一致的。
+现代的处理器核可以重排许多内存访问指令，但本质上讨论两个内存操作Load/Store的重排序组合已经足够了。大多数情况下，我们只需要讨论单个核重排序两个不同地址的两个内存操作的情况（因为同一个核上同一个地址的内存操作会因为数据相关的原因不会重排，即保证了单核上的重排优化不影响执行结果）。
+我们将可能的重排序分解成四种场景。这四种场景也是后续内存一致性模型要讨论的内容。和之前提到的一样，这是重排序问题的两个层次，第一是Load/Store指令执行顺序的问题，第二个是假设在当前Load/Store指令执行顺序没有问题的前提下，指令执行的（结果的）顺序被对另外的核来说是否也是一致的（缓存一致性问题）。
 ##### 1.2.1.1. Store-Store 指令重排序
 比如先初始化，然后设置初始化完成的标志。两个变量是不同内存地址，会有乱排可能。
 ``` C
@@ -183,11 +183,35 @@ void lock(int thread_index)
   while (flag[1-thread_index] && turn == 1-thread_index);
 }
 ```
+
 ### 1.3. 缓存优化
 上面提到的两个优化的导致的问题都是由于冯诺依曼模型中CPU指令执行的顺序乱序导致的，还未涉及多核内存一致性问题。其解决方案也都是在[内存顺序一致性模型](#参考7)的前提下有效的。
 ![sequential consistency model](./pic/sequential_consistency_mem_model.png)
-而多核系统中，为了进一步加速单核对内存访问的速率，设计了多级cache，这样的设计带来了另一个问题，对相同的内存地址可能映射到了不同的核的cache上，而不同的核的内存读写操作可能导致其cache上的数据不一致，也就是说，相同的内存地址，不同的核看到的内存不一致，这个问题就是内存一致性问题。也就是上文提到的，假设在当前load/store指令执行顺序没有问题的前提下，指令执行的（结果的）顺序被对另外的核来说是否也是一致的。你也可以理解为内存状态机，在某一刻时，不同核的视角来看是不同的。
-#### 1.3.1. 内存一致性模型
+而多核系统中，为了进一步加速单核对内存访问的速率，设计了多级cache，这样的设计带来了另一个问题，对相同的内存地址可能映射到了不同的核的cache上，而不同的核的内存读写操作可能导致其cache上的数据不一致，也就是说，相同的内存地址，不同的核看到的内存不一致，这个问题就是缓存一致性问题。也就是上文提到的，假设在当前load/store指令执行顺序没有问题的前提下，指令执行的（结果的）顺序被对另外的核来说是否也是一致的。你也可以理解为内存状态机，在某一刻时，不同核的视角来看是不同的。
+
+#### 1.3.1. 缓存一致性
+为了加速内存访问而添加了多级cache，由于多核cpu的存在每个cpu的cache与内存之间的数据同步（数据同步的基本单位是cache line,，一般为64字节）就需要通过缓存一致性协议解决。缓存一致性协议有多种，可以分为两类：
+- 窥探（snooping）协议：todo
+- 基于目录的（directory-based）协议：todo
+
+> 题外话：多线程程序中伪共享导致的性能问题就是缓存一致性协议带来的。todo
+
+##### 1.3.1.1. MESI协议
+现在介绍一个相对常用的窥探协议——MESI协议。
+协议规定了cache line的四种状态。缓存行的结构包含有效位、组标记和数据块，MESI使用2bit的有效位来表示四种状态
+- Modified：表明该cache line已经被修改，cache line只有先处于Exclusive状态才能被修改。此外，已修改cache line如果被丢弃或标记为Invalid，那么先要把它的内容回写到内存中。
+- Exclusive：表明该cache line是内存中某一段数据的拷贝。区别在于，该cache line**独占**该内存地址，其他core的cache line不能同时持有它，如果其他core原本也持有同一cache line，那么它会马上变成“Invalid”状态。
+- Shared：和 Exclusive 状态一样，表明该cache line是内存中某一段数据的拷贝，处于该状态下的cache line只能被core读取，不能写入，因为此时还没有独占。不同core的cache line都可以拥有这段内存数据的拷贝。
+- Invalid：表明该cache line已失效，它要么已经不在cache中，要么它的内容已经过时。处于该状态下的cache line等同于它从来没被加载到cache中。
+
+[这里](https://www.scss.tcd.ie/Jeremy.Jones/vivio/caches/MESI.htm)可以模拟MESI的状态机转换
+
+// todo
+Store Forwarding
+Invalid Queue
+// 分离的写屏障和读屏障的出现，是为了更加精细地控制 Store Buffer 和 Invalid Queue 的顺序。
+
+#### 1.3.2. 内存一致性模型
 内存一致性模型，或简称内存模型。上述提到了的内存顺序一致性模型就是其中一种。内存模型是一个规范，指明了使用共享内存执行的多线程程序所被允许的行为，目的是为了精确定义
    - 编程者能够期望什么行为 
    - 系统实现者可以使用哪些优化
@@ -232,7 +256,7 @@ int main()
 例程A中1-2和1-3（2-2和2-3同样）指令的执行顺序是保证的，因为两条指令存在数据依赖。
 下面根据例程A介绍几个常见的内存模型
 
-##### 1.3.1.1. 内存顺序一致性模型（SC）
+##### 1.3.2.1. 内存顺序一致性模型（SC）
 内存顺序一致性模型，即程序顺序与内存顺序一致模型，是最理想情况下的内存模型（MIPS R10000使用的此类内存模型），从硬件角度看可以类比于所有的处理器直接连接到一块共享的每次只允许一个处理器读/写的内存上且处理器和共享内存间没有cache。
 - 每次任意一个处理器对共享内存上的读，直接从共享内存读。
 - 每次任意一个处理器对共享内存上的写，直接写到共享内存。
@@ -251,12 +275,14 @@ Store->Load:  if S(a) <p L(b) then S(a) <m L(b)
 
 > 就是说对于例程A来说，是不可能出现输出"0 0"的结果的，可以用[Model Check](https://github.com/jiangyy/mosaic)验证
 
-##### 1.3.1.2. x86 Total Store Order(x86-TSO)
+##### 1.3.2.2. x86 Total Store Order(x86-TSO)
 ![x86 TSO](./pic/x86_tso_model.png)
 为了加速性能，硬件上在CPU和内存间多了一个FIFO的local write queue（a write back cache \ write buffer \ store buffer）。因为实际上大多数情况并不需要保证Store->Load情况下的顺序一致性，所以这部分硬件上的小改动使得在TSO相比SC有了更优秀的性能。
+
 > 实现上，微架构能够在物理上将store queue（未提交的store操作）和write buffer（已提交的store操作）组合到一起，并且/或者物理上独立出load和store queue。
+
 使得读\写操作变得如下
-- 每次任意一个处理器对共享内存上的读，先从local write queue查看是否存在，存在直接读local write queue，不存在则从共享内存读。
+- 每次任意一个处理器对共享内存上的读，先从local write queue查看是否存在，存在直接读local write queue中最后一个write的结果（保证Store->Store有序），不存在则从共享内存读。
 - 每次任意一个处理器对共享内存上的写，先写到local write queue，再一起写到共享内存。
 对单核处理器来说，这个local write queue不会影响读\写操作的结果。
 对于多核处理器上的例程A来说，假设指令顺序和代码一致，也会存在如下执行顺序
@@ -265,6 +291,7 @@ Store->Load:  if S(a) <p L(b) then S(a) <m L(b)
 3. 两个core执行load操作都读到了内存上未被local write queue更新的旧值
 4. load操作执行完成后local write queue更新到了内存中
 上述结果是顺序一致性模型所不允许的。SPARC和x86就在此硬件基础上，实现了一个新的内存模型TSO。
+
 使用形式化语言描述此结构
 1. 所有核心遵循的内存顺序和程序顺序一致的有三种操作，满足这个顺序一致的前提是local write queue 必须是FIFO的，这样才能保证Store->Store的顺序。在Store->Load场景下，TSO并不保证程序顺序和内存顺序一致，但操作上可以通过给的S1和L1之间以及S2和L2之间添加FENCE指令来保证程序顺序和内存顺序一致。
 ```
@@ -279,7 +306,7 @@ FENCE->Store: if FENCE <p S(a)  then FENCE <m S(a)
 FENCE->FENCE: if FENCE <p FENCE then FENCE <m FENCE
 ```
 ![tso mem scene](./pic/TSO_mem_ops_scene.png)
-2. 每个load操作获取的值来自其 **<m** 序列中向前最近一次的store结果
+2. 每个load操作获取的值来自其 **<m** 序列中从后向前最近一次的store结果
 3. TSO在下表中的有X的内存操作必须要按照程序顺序执行
 ![tso ops](./pic/tso_constrict_table.png)
 
@@ -310,19 +337,27 @@ CPU 系列：          6
   19924 Xb
 ```
 
-##### 1.3.1.2.5 Part Store Order
-https://zhuanlan.zhihu.com/p/125549632
-Store Forwarding
-Invalid Queue
-// todo
-// 分离的写屏障和读屏障的出现，是为了更加精细地控制 Store Buffer 和 Invalid Queue 的顺序。
-##### 1.3.1.3. Relaxed Memory Consistency
+##### 1.3.2.3. Part Store Order
+在CPU和cache中加入了非FIFO的store buffer，进一步使得Store->Store的顺序没法保证
+```
+Load->Load:   if L(a) <p L(b)   then L(a) <m L(b)
+Load->Store:  if L(a) <p S(b)   then L(a) <m S(b)
+#Store->Store: if S(a) <p S(b)   then S(a) <m S(b)
+#Store->Load:  if S(a) <p L(b)   then S(a) <m L(b) 
+Load->FENCE:  if L(a) <p FENCE  then L(a) <m FENCE
+FENCE->Load:  if FENCE <p L(a)  then FENCE <m L(a)
+Store->FENCE: if S(a) <p FENCE  then S(a) <m FENCE
+FENCE->Store: if FENCE <p S(a)  then FENCE <m S(a)
+FENCE->FENCE: if FENCE <p FENCE then FENCE <m FENCE
+```
+
+##### 1.3.2.4. Relaxed Memory Consistency
 进一步说，大多数场景下多核的读/写操作并不需要保证顺序一致性，也就是说可以进一步放开内存模型的约束来加速性能，宽松内存模型也因此出现。其要求程序员通过显式的要求来保证少数场景下的顺序一致性。
 举一个并发编程中常用的锁使用的例程B
 ![Relaxed Memory Consistency example B](./pic/Relaxed_memory_consistency_exampleB.png)
 这是使用锁实现临界区互斥，期望的程序顺序和内存顺序是`ALL L1i, ALL S1j -> R1 -> A2 -> ALL L2i, ALL S2j`，假定临界区内部的load/store只要考虑好操作间的数据依赖关系，可以根据任意顺序执行（临界区内退化为单核模型）。这样的假设的缘由是临界区内部的操作比锁的acquire和release要频繁，如果减少对临界区内部read/store的约束可以进一步提高性能。
 
-###### 1.3.1.3.1. eXample relaxed Consistency model（XC）
+###### 1.3.2.4.1. eXample relaxed Consistency model（XC）
 为了教学目的，在[A Primer On Memory Consistency And Cache Coherence](#参考6)一书中介绍了一个eXample relaxed Consistency model（XC）
 XC提供了一个FENCE指令，使得在FENCE前的指令必定在FENCE前完成，FENCE后的指令必定在FENCE后开始。
 使用形式化语言描述此结构
@@ -344,13 +379,13 @@ FENCE->FENCE: if FENCE <p FENCE then FENCE <m FENCE
 为了达到例程B中期望的程序顺序和内存顺序一致的效果就需要程序员在其中插入FENCE指令，如例程C
 ![Relaxed Memory Consistency example C](./pic/Relaxed_memory_consistency_exampleC.png)
 
-###### 1.3.1.3.2. POWER Relaxed Momory Moder
+###### 1.3.2.4.2. POWER Relaxed Momory Moder
 Power提供了一个表面上和XC相似的松散模型，但有很多重要的不同之处
 1. Power中的store操作的执行会关注于其它core，不是memory。因此，Power不保证和XC创建出一样的总内存顺序( < m )
 2. Power里的一些FENCE被定义为可累积的（cumulative）。
 3. Power有三类FENCE（还有更多类型用于I/O内存），XC只有一种FENCE。意味在有更细分的FENCE指令的控制之下，会有更好的性能。
 
-###### 1.3.1.3.3. ARM
+###### 1.3.2.4.3. ARM
 ARM提供了一个核心思想接近于IBM Power的内存模型。和Power类似，
 1. 它看起来并不保证有一个总内存顺序。
 2. ARM有多种风格的FENCE，包括一个数据内存barrier，能够排序所有内存访问或只排序store操作，一个和Power的ISYNC类似的指令同步barrier，还有其它的用于I/O操作的FENCE。
@@ -807,3 +842,5 @@ todo
 9. [内存一致性文章翻译版](https://www.zhihu.com/column/c_1468301126504771584)
 10. [A Primer On Memory Consistency And Cache Coherence（内存一致性文章原文**非常好**）](./APrimerOnMemoryConsistencyAndCacheCoherence.pdf)
 11. OSTEP
+12. [缓存一致性协议的工作方式](https://zhuanlan.zhihu.com/p/123926004)
+13. [内存屏障的来历](https://zhuanlan.zhihu.com/p/125549632)
