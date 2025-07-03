@@ -10,14 +10,17 @@
 ![CPU集成内存控制器](pics/Integrated_Memory_Controller.png)
    - CPU集成内存内存控制器。CPU直接与RAM传输。这类架构在AMD的一些SMP系统上比较流行，Intel用类似架构实现了Common System Interface(CSI)。这类架构的好处就是传输不用经过北桥，会特别快。坏处就是内存不是一致的，也就是NUMA(Non-Uniform Memory Architecture)的由来。另外，当访问直接与CPU相连的RAM速度正常，但当一块CPU访问与另一块CPU相连的内存时，就会需要interconnects(如图所示cpu1-cpu2要1条，cpu1到cpu4要2条)。每一条interconnects都会对总体性能带来损耗，这种损耗被称为"NUMA factors"。进一步地，有架构将多个core整合进一个CPU里，一个CPU共享一个（或两个）内存控制器以减少节点内core访问RAM所需的interconnect，这种架构需要跟复杂的设计来控制"NUMA factors"。intel从haswell的ring总线架构改进为skylake的mesh总线架构就是为了进一步减少"NUMA factors"。
 
-## RAM Types
+## RAM
 #### Static RAM
 贵。cache就是这种
 #### Dynamic RAM 
 
 ##### Synchronous DRAM
+一般情况下，计算机使用的DRAM基本为SDRAM（同步动态随机存取内存）。SDRAM是一种同步动态随机存取存储器，它是DRAM的一种类型，与传统的异步DRAM相比，它能够与系统时钟同步运行，从而提供更高的数据传输率和更佳的性能。SDRAM的设计目的是为了适应计算机系统中日益增长的性能需求，尤其是在处理器速度快速提升的背景下，传统的异步DRAM无法提供足够的带宽和响应速度。DDR(Double Data Rate)技术出现，其在时钟信号的上升沿和下降沿均可传输数据。所以DDR内存的MT/s (mega transfers per second)是IO bus频率的两倍。
+###### 物理结构
 ![sdram](pics/sdram_graph.png)
-一般情况下，计算机使用的DRAM基本为SDRAM（同步动态随机存取内存）。SDRAM是一种同步动态随机存取存储器，它是DRAM的一种类型，与传统的异步DRAM相比，它能够与系统时钟同步运行，从而提供更高的数据传输率和更佳的性能。SDRAM的设计目的是为了适应计算机系统中日益增长的性能需求，尤其是在处理器速度快速提升的背景下，传统的异步DRAM无法提供足够的带宽和响应速度。
+todo 画个新图
+一个socker CPU（那种可以拿手里的CPU芯片）可以带多个内存控制器，一个内存控制器可以有多个内存通道（channel），一个内存通道可以对应多个内存插槽（slot）,一个内存插槽只能插一张内存模块（DIMM）（内存条），一个模块可以有多个内存列（rank）（内存条上的一排黑色的，一排叫一个rank），一个rank可以有多个内存颗粒
 ###### 发展
 ![development path](pics/development_path_of_dram.jpg)
 1. SIMM(Single Inline Memory Module): 金手指两侧提供相同的信号
@@ -28,8 +31,15 @@
 6. 搭配可感知Rank的内存控制器的LRDIMM: 2012后第二代DDR3平台的内存控制器可以感知到LRDIMM片上缓存后面的物理rank，使得其可以对访问有更细微的控制（时间上等），减少了LRDIMM与RDIMM间延迟差距和带宽差距。DDR4有了更进一步的提高
 7. DDR4
 8. DDR5
-## 内存子系统贷款
-### 
+## 内存子系统带宽
+### memory interleaving
+AMD’s new silicon architecture adds nuances on how to configure platforms for NUMA. The focus of AMDs scheme to NUMA lies within its quad-die layout and its potential to have four NUMA domains.
+Socket Interleaving is the only memory interleave option meant for inter-socket memory interleaving, and is only available with 2-processor configurations. In this configuration memory across both sockets will be seen as a single memory domain producing a non-NUMA configuration. 只针对服务器里有两个socket（物理CPU）时可以生效，会让两个socket的内存视为一整块大内存。
+Die Interleaving is the intra-socket memory interleave option that creates one NUMA domain for all the four dies on a socket. In a 2-processor configuration this will produce two NUMA domains, one domain pertaining to each socket providing customers with the first option for NUMA configuration. In a 1-processor configuration die interleaving will be the maximum option for memory interleaving, and will produce one memory domain thus producing a non-NUMA configuration.
+Channel Interleaving is the intra-die memory interleave option and is the default setting for Dell EMC platforms. With channel interleaving the memory behind each UMC will be interleaved and seen as 1 NUMA domain per die. This will generate four NUMA domains per socket.
+Memory Interleave disabled - When memory interleave is disable 4 NUMA nodes will be seen as in the case for channel interleaving but the memory will not be interleaved yet stacked next to one another.
+#### rank interleaving
+一般可以设置1-way/2-way/4-way
 ## refer
 1. [What every programmer should know about memory - Ulrich Drepper](https://lwn.net/Articles/250967/)
 2. [MEMORY DEEP DIVE SERIES - Frank Denneman](https://frankdenneman.nl/2015/02/18/memory-configuration-scalability-blog-series/)
@@ -43,3 +53,5 @@
 10. https://lwn.net/Articles/256433/ Section 7 tool
 11. https://lwn.net/Articles/258154/ Section 8 furture work
 12. https://lwn.net/Articles/258188/ mem9
+13. [华为鲲鹏调优指南](https://www.hikunpeng.com/doc_center/source/zh/kunpenghpcs/hpcindapp/tngg/%E8%B0%83%E4%BC%98%E6%8C%87%E5%8D%97%2006.pdf)
+14. [dell白皮书](https://dl.dell.com/manuals/all-products/esuprt_software/esuprt_it_ops_datcentr_mgmt/servers-solution-resources_white-papers3_en-us.pdf)

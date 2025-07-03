@@ -27,13 +27,12 @@ CPU的处理性能和内存的访问性能间的差距，随着单核CPU技术�
 让顺序访问的物理内存是不同通道上的内存条提供的
 interleaving的粒度可能是4k 8k 2m
 ## terms
-DDR(Double Data Rate): 是按照内部技术对内存的分类，全名是DDR SDRAM(Synchronous Dynamic Random Access Memory，同步动态随机存储器)，含义是在时钟的电压上升沿和下降沿都会发生数据传输。所以DDR内存的MT/s (mega transfers per second)是IO bus频率的两倍。
 channel: CPU中的内存通道, 内存之所以有多通道是因为cpu集成了多个内存控制器。通常DDR\DDR2\DDR3\DDR4接口都是64比特的channel width
 Error Checking and Correction (ECC) memory: 错误检测，可能会导致2~3%性能损耗
 region：如果一个region没有用满所有的memory channel 那么这个region的吞吐量就没用满的那么高，所以插内存的时候尽量在一个region插满，而不是插到两个region上
 ## 命令
 ``` bash
-dmidecode memory
+dmidecode -t memory
 ```
 ## 参考
 1. https://frankdenneman.nl/2015/02/20/memory-deep-dive/

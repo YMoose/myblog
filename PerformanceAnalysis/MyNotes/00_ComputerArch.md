@@ -92,3 +92,4 @@ https://r12f.com/posts/pcie-1-basics/
 https://zhuanlan.zhihu.com/p/54876718
 https://www.zhihu.com/column/c_1089831721599438848
 Yuan, J.; Zhang, J.; Qiu, P.; Wei, X.; Liu, D. A Survey of of Side-Channel Attacks and Mitigation for Processor Interconnects. Appl. Sci. 2024, 14, 6699. https://doi.org/10.3390/app14156699
+https://handwiki.org/wiki/Engineering:List_of_Intel_CPU_microarchitectures
