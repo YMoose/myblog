@@ -4,9 +4,12 @@
 - Composite：：通过树形结构统一对组合对象和单个对象的操作接口
 - Iterator：为遍历不同的对象集合提供统一的操作接口
 - **Chain of Resposiblity**：将处理行为组成一个链表结构，对单一请求对象进行处理
+
 ## 动机
 **稳定的**请求对象，**变化的**处理行为流程，隔离了请求对象和处理流程
+
 ## 实现
 ![UML](pics/31_ChainOfResponsibility_UML.png)
+
 ## 代码实现
 vpp中的graph node框架，请求对象就是frame
