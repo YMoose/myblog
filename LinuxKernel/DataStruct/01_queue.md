@@ -485,6 +485,7 @@ kfifo还有用spinlock提供了一些多线程场景下的接口。
 
 ### 使用
 可以查看 lib/tests/kfifo_kunit.c 和 samples/kfifo/dma-example.c
+todo 实际使用
 ## 参考
 1. [环形缓冲区](https://www.kernel.org/doc/html/latest/translations/zh_CN/core-api/circular-buffers.html)
 2. [知乎-Linux kernel中有哪些奇技淫巧？](https://www.zhihu.com/question/471637144/answer/2143542730)
