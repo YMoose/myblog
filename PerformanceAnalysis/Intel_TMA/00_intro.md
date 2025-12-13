@@ -30,7 +30,7 @@ TMAM: Top-down Microarchitecture Analysis (TMA) Method
 1. Retiring : 理想状况的流水线执行完成([参考](https://stackoverflow.com/questions/22368835/what-does-intel-mean-by-retired):一定程度上可以理解为正常回写)
 2. Bad Speculation : 分支预测出错
 3. Frontend Bound : 取指、译码
-4. Backend Bound : 执行、访存
+4. Backend Bound : 执行、访存、写回
 
 ## 参考资料
 1. [Intel对TMAM的介绍](https://software.intel.com/content/www/us/en/develop/documentation/vtune-cookbook/top/methodologies/top-down-microarchitecture-analysis-method.html)
