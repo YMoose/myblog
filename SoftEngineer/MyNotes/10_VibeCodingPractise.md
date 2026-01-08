@@ -31,6 +31,50 @@
 5. 及时用git保存修改。AI Agent还是有实现错误的可能，当AI Agent的实现朝你想要的方向进了一步时，及时用版本管理工具保存备份，因为AI Agent的链条长，有可能跑飞，及时报存这样跑飞了还可以回滚重跑。
 6. 调试小tip：可以样llm生成大量的日志来调试，后面直接回滚删除。
 
+### speckit 使用
+1. `/speckit.constitution`：对agent的人设（对代码、开发的态度）进行一定的约束，比如
+```
+/speckit.constitution Create principles focused on code quality, testing standards, user experience consistency, and performance requirements
+```
+就是说agent需要更关注代码质量、可测标准等，也可以加一些其他的描述，比如我喜欢加以TDD作为开发方法。
+这个命令修改的是项目.specify目录里的内容，一般是一些文档模板
+2. `/speckit.specify`和`/speckit.clarify`：描述项目需求，这一步尽量减少对具体技术栈的描述，描述项目要做到的功能、使用场景、可以对模块进行划分，
+```
+/speckit.specify Develop Taskify, a team productivity platform. It should allow users to create projects, add team members,
+assign tasks, comment and move tasks between boards in Kanban style. In this initial phase for this feature,
+let's call it "Create Taskify," let's have multiple users but the users will be declared ahead of time, predefined.
+I want five users in two different categories, one product manager and four engineers. Let's create three
+different sample projects. Let's have the standard Kanban columns for the status of each task, such as "To Do,"
+"In Progress," "In Review," and "Done." There will be no login for this application as this is just the very
+first testing thing to ensure that our basic features are set up. For each task in the UI for a task card,
+you should be able to change the current status of the task between the different columns in the Kanban work board.
+You should be able to leave an unlimited number of comments for a particular card. You should be able to, from that task
+card, assign one of the valid users. When you first launch Taskify, it's going to give you a list of the five users to pick
+from. There will be no password required. When you click on a user, you go into the main view, which displays the list of
+projects. When you click on a project, you open the Kanban board for that project. You're going to see the columns.
+You'll be able to drag and drop cards back and forth between different columns. You will see any cards that are
+assigned to you, the currently logged in user, in a different color from all the other ones, so you can quickly
+see yours. You can edit any comments that you make, but you can't edit comments that other people made. You can
+delete any comments that you made, but you can't delete comments anybody else made.
+```
+这样会生成以下文件
+```
+specs
+  └── 001-create-taskify
+      └── spec.md
+```
+其中就包括对项目需求的描述有使用场景等（这个文档的内容可能产品经理会熟悉一些，todo了解一下）
+要review这个文档，修改不符合你期待的地方，这一步也可以使用`/speckit.clarify`命令或者直接让agent帮你完善，也可以直接修改文档。个人喜欢用这个
+```
+/speckit.clarify 看看还有没有什么没说清楚的或者有矛盾的
+/speckit.clarify 看看还有没有什么不重要的可以提前去除
+```
+claude-code 可以使用这个进一步检查
+```
+Read the review and acceptance checklist, and check off each item in the checklist if the feature spec meets the criteria. Leave it empty if it does not.
+```
+3. `/speckit.plan`
+
 ## 一点小问题
 1. 在windows10下的WSL使用claude-code的时候，有时候他会使用grep命令来搜索代码，这一grep常常给我整个硬盘IO占满，不知道咋解。
 2. 管理上下文，如何控制AI Agent的上下文内容，有些时候在沟通的时候会理解错，这个时候如果可以删除一些没用的上下文可能可以帮助理解，具体怎么做呢？(claude好像有/context)
