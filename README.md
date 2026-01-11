@@ -1,5 +1,8 @@
 # Moose Blogs
-todo 将一些基本的知识剔除，保留两个方面，一个是个人思考，一个是归纳整理。
+这里仅记录一些实时的相对粗糙的笔记内容，整理后的笔记可以看这里[Moose's Blog](https://ymoose.github.io/)
+todo会将一些基本的知识剔除，保留两个方面，
+1. 个人思考及经验
+2. 抽象归纳整理
 ## 如何写博客
 写技术博客的时候，可以首先思考
 1. Who is your target audience? What is your target audience's goal? Why are they reading this document?
