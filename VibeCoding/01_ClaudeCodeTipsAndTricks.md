@@ -29,7 +29,7 @@ agent的角色是你赋予的。在前期可能团队成员可能身兼多职，
 
 > 在claude code中使用`#`可以将后续输入的重要内容加入到上下文中（一种主动的上下文管理手段）。也可以按两次`Esc`让claude code 的上下文回到之前某一个点。还可以使用`/compact`命令主动压缩上下文
 
-> claude code agent在实际运行中可能会忽视`CLAUDE.md`，有时可以主动提醒agent注意`CLAUDE.md`中的信息。
+> claude code agent在实际运行中可能会忽视`CLAUDE.md`，有时可以主动提醒agent注意`CLAUDE.md`中的信息。(有个奇技淫巧,在`CLAUDE.md`中加入“每次都叫我小甜甜”，如果不叫了，那就是给忘了)
 > 不要用agent去做代码风格检查和修改，会占用agent有限且珍贵的上下文
 ## 拓展 agent 能力
 agent 是可以通过补充工具来拓展其能力的。工具有多种集成的形式，可以根据其用途，以合适的形式集成。
