@@ -75,6 +75,40 @@ Read the review and acceptance checklist, and check off each item in the checkli
 ```
 3. `/speckit.plan`
 
+## AI Fluency: Framework & Foundations
+提到要有角色转换
+了解ai的属性
+1. automation
+2. augmentation
+3. agency
+在此基础上，对于ai的使用要注重4个方面（4Ds）
+1. delegation
+2. description
+3. discernment
+4. diligence
+
+### delegation
+
+人                          AI
+delegation  让ai做某事       思考
+description 给予更多信息      收集信息
+discernment 判断及反馈
+
+### description
+
+在description中promting techniques 就很重要
+你期望llm返回的内容让（你的知识/代码项目）状态更新，尽可能描述清楚当前的状态和你期望的演进的方向。
+课程提了一下几方面
+1. provide context
+2. offer examples
+3. specify output constraints
+4. break down complex tasks
+5. give the ai space to think
+6. define roles
+
+### discernment
+不止要评估结果，也评估过程
+
 ## 一点小问题
 1. 在windows10下的WSL使用claude-code的时候，有时候他会使用grep命令来搜索代码，这一grep常常给我整个硬盘IO占满，不知道咋解。
 2. 管理上下文，如何控制AI Agent的上下文内容，有些时候在沟通的时候会理解错，这个时候如果可以删除一些没用的上下文可能可以帮助理解，具体怎么做呢？(claude好像有/context)
@@ -86,3 +120,4 @@ Read the review and acceptance checklist, and check off each item in the checkli
 4. [两个月重度使用 AI Code Agent：普通一线程序员的思考和感想](https://jt26wzz.com/posts/0013-ai-coding/)
 5. [Specification-Driven Development (SDD)](https://github.com/github/spec-kit/blob/main/spec-driven.md)
 6. [从ChatGPT到AI Agent，一文讲透 Agent 的底层逻辑](https://mp.weixin.qq.com/s/tewBKHgbyrjxUjAOmkXI7A)
+7. [claude code 对使用AI的建议](https://anthropic.skilljar.com/ai-fluency-framework-foundations)

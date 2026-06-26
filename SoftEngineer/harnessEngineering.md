@@ -162,7 +162,97 @@ Our most difficult challenges now center on designing environments, feedback loo
 
 As agents like Codex take on larger portions of the software lifecycle, these questions will matter even more. We hope that sharing some early lessons helps you reason about where to invest your effort so you can just build things.
 
-## martinfowler 
+## atlassian work management
+https://www.atlassian.com/work-management
 
-https://martinfowler.com/articles/harness-engineering.html
+### strategic planning
+It involves setting priorities and deciding how resources will be allocated to support that overall vision. 
 
+It’s easy to confuse strategic planning with project planning, but the two are quite different. Project planning is important for singular tasks or assignments that your team is completing (how you will move that project from inception to completion).
+
+Strategic planning is broader. It pulls all individual projects into a cohesive strategy that supports the company’s overarching goal.
+这部分还太高屋建瓴了，暂时还不需要
+
+### project management
+Project management ensures that a team's work aligns with [SMART goals](https://www.atlassian.com/blog/productivity/how-to-write-smart-goals) and meets the criteria for success within given constraints. 
+
+The core phases of project management include: 
+
+- Planning: In the first stage, you'll define project scope, objectives, and steps to achieve them. This stage involves creating a detailed roadmap, planning resources, and identifying potential risks. 
+- Executing: This is where you put the plan into action by coordinating people and resources, managing stakeholder expectations, and overseeing the completion of tasks. 
+- Closing: This is the formal ending of the project. In this stage, you'll evaluate the project's success, document lessons learned, and release resources.
+- Monitoring: Monitoring involves tracking progress, measuring performance against key indicators, and adjusting as needed to keep the project on track. 
+Monitoring 可以说是上面三步进行中的并行的工作，并不是单独的一个phase
+
+### 敏捷开发
+https://www.atlassian.com/agile
+
+``` mermaid
+graph TD
+    A[Agile 敏捷<br/>价值观 & 原则]
+    B[Lean 精益<br/>源自丰田<br/>消除浪费]
+
+    %% 敏捷体系
+    A --> A1[Scrum<br/>项目管理框架]
+    A --> A2[XP 极限编程<br/>技术实践]
+
+    %% 精益体系
+    B --> B1[Kanban 看板<br/>可视化流动工具]
+```
+
+``` mermaid
+graph TD
+    C[实际项目常用搭配]
+
+    C --> C1[Scrum + Kanban = Scrumban]
+    C --> C2[Scrum + XP]
+    C --> C3[Lean + Kanban]
+    C --> C4[Scrum + Lean + Kanban 全混合]
+```
+
+## milestone management
+
+milestone就是checkpoint或者关键事件。使团队更容易评估项目是否按计划推进，并让利益相关者在不陷入任务细节的情况下审查进度。
+
+里程碑制定——过程动态跟进——上线前收尾确认
+
+一些重要的事情发生并可以被签署为完成（确定里程碑交付物交付）时，它的记号或标识才被认为是里程碑。里程碑只有“100%完成”和“无法完成”两个状态——不存在部分完成的情况。（这样可以将一些无法量化的东西量化为简单的完成，未完成）
+
+里程碑记录在一个进度计划的列表中及甘特图
+
+项目管理术语要避免混淆
+通常情况下，项目里程碑会与其他项目管理术语混淆，下面是一些常见的混淆情况，如果您想创建一个任务、里程碑或目标时，请记住他们：
+
+1. 里程碑与目标：项目目标是您试图通过您的项目实现的总体目标。而里程碑只是具体的检查点，可以帮助您跟踪项目的进展，确保您可以实现项目目标。
+2. 里程碑与项目交付物:交付物是项目过程中产生的具体成果或结果。这些包括“最终报告”、“已完成的营销活动”或“软件版本发布”等。交付物反映了已完成的工作，而里程碑则表明已到达某个特定节点。可以将里程碑视为进度指示器，而交付物则是该进度的产出。例如，“原型交付”如果标志着项目时间线中的重大转折点，那么它既可以是交付物，也可以是里程碑。理解这种关系有助于在规划时清晰地定义项目里程碑和交付物的示例。在网站开发项目中，里程碑可能包括“设计审批”、“内容上传完成”和“客户审查”，而可交付成果可能是“上线网站”、“样式指南”或“发布资源”。它们共同确保过程和结果都能被高效跟踪。
+3. 里程碑与任务:任务是两个里程碑节点上的线段
+
+如何制定里程碑的参考
+有可行性，有验收价值
+项目预算：根据项目预算，确保您的里程碑时间节点是现实的。如果不现实，您需要调整您的项目规划表或寻找额外的项目资金；
+项目进度：确保您的里程碑时符合项目进度表的。如果不符合，您需要调整您的里程碑或项目进度表；
+项目范围：确保您的里程碑是在项目范围内可实现的。如果无法实现，您需要调整里程碑或项目范围。
+
+重点关注有依赖的节点
+进行阶段性复盘。里程碑完成了，好的方面是什么；里程碑完成可能有风险，着重复盘偏差的原因，再针对性地去解决。
+
+每个项目都包含多个阶段，可以通过项目管理中的里程碑进行跟踪。这些项目管理里程碑充当参考点，以确保项目按照计划推进。识别项目中的关键里程碑有助于从管理者到利益相关者的每个人了解团队距离完成目标的进度。
+以下是一些适用于各行业和项目类型的常见项目里程碑示例。
+启动里程碑：这些标志着项目的正式开始。示例包括项目审批、资源分配或预算确认。在此阶段，团队会定义项目里程碑，以构建后续的时间表。达到这一第一个检查点，确认项目可行并已准备好进入规划阶段。
+规划里程碑：这些侧重于制定时间表、识别依赖关系以及评估风险。规划里程碑通常包括“风险评估完成”或“时间表最终确定”。通过设定明确的规划里程碑，团队可以确保在执行开始前准确跟踪进度。
+执行里程碑：这些代表在主要工作阶段中的实际进展。示例包括设计评审、原型交付或MVP发布。在此阶段跟踪项目里程碑可确保每个交付成果与预先设定的目标和质量基准保持一致。例如，完成“beta版本发布审批”表明开发进度正常。
+测试里程碑：每个项目都应包含一个验证成果的阶段。测试里程碑可能包括“QA测试完成”或“用户验收测试（UAT）已通过”。这些检查点在发布前验证交付成果是否符合功能和质量预期。
+收尾里程碑：这些标志着项目交付的最后步骤。收尾里程碑包括客户验收、文档定稿以及项目后评审。达到这些项目管理里程碑意味着项目已成功完成，并使团队能够反思绩效和总结经验。
+
+避免里程碑过载：过多的检查点会分散注意力。只优先考虑真正代表进展的关键项目里程碑。
+
+了解什么是项目里程碑
+只是过程的一部分。下一步是学习如何定义可实现、可衡量并与整体目标战略一致的项目里程碑。有效的里程碑规划可确保更顺畅的跟踪、更好的协作以及按时交付。
+以下是设置真正有效的项目里程碑模板和检查点的方法。
+将项目分解为逻辑阶段： 将项目划分为明确的阶段，例如启动、规划、执行和收尾。每个阶段都应包含反映重要转变的关键项目里程碑。这种方法简化了项目里程碑的跟踪，并能在每个阶段进行清晰的汇报。
+识别任务之间的关键依赖关系： 里程碑通常依赖于其他任务先完成。在规划时，识别这些依赖关系，以便有效管理延误。例如，在项目管理的里程碑中，“设计审批”必须在“开发开始”之前。可视化依赖关系有助于防止后续出现瓶颈。
+为里程碑检查点分配负责人：问责制对于推进工作至关重要。将里程碑的所有权分配给特定团队成员或部门。这确保了跟踪项目里程碑成为一种共同责任，从而促进团队内部的透明度。
+估算切实可行的完成日期：设定过于激进的日期可能会导致压力和不一致。使用过去的数据或历史项目里程碑示例来预测可实现的时间表。切实可行的截止日期有助于保持一致性，并使团队能够有效规划资源。
+使用工具可视化里程碑：甘特图、日历或项目里程碑模板可以让时间线更易于跟进。能够直观展示项目里程碑的工具有助于利益相关者即时了解进展。像 Lark 这样的数字化工作空间，可以以动态方式可视化项目的关键里程碑，并实时更新。
+在项目发展过程中进行审查和调整：项目的范围、时间表或资源经常会发生变化。定期重新审视你的里程碑清单可确保其保持相关性。动态跟踪项目里程碑可确保依赖关系或交付物的变化能够即时反映。
+为不同类型的项目（如产品发布或软件开发）建立项目里程碑模板，有助于团队在各项目和部门之间标准化成功跟踪。
